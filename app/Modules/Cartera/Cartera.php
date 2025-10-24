@@ -14,7 +14,6 @@ class Cartera extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'cliente_id',
         'saldo',
         'total_deuda',
     ];

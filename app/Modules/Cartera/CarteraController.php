@@ -5,18 +5,10 @@ namespace App\Modules\Cartera;
 use App\Http\Controllers\Controller;
 use App\Modules\Cartera\Requests\StoreCarteraRequest;
 use App\Modules\Cartera\Requests\UpdateCarteraRequest;
+use App\Modules\Cartera\CarteraResource;
 
 class CarteraController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        return CarteraResource::collection(Cartera::paginate(15));
-    }
-
-
     /**
      * Store a newly created resource in storage.
      */
@@ -26,12 +18,18 @@ class CarteraController extends Controller
         return new CarteraResource($cartera);
     }
 
+    public function show(Cartera $cartera)
+    {
+
+        return new CarteraResource($cartera);
+    }
     /**
      * Update the specified resource in storage.
      */
     public function update(UpdateCarteraRequest $request, Cartera $cartera)
     {
-        //
+        $cartera->update($request->validated());
+        return new CarteraResource($cartera);
     }
 
     /**
