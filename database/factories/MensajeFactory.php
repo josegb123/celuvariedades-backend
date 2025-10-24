@@ -2,15 +2,16 @@
 
 namespace Database\Factories;
 
+use App\Modules\Mensajeria\Mensaje;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use App\Models\Mensaje;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Mensaje>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Modules\Mensajeria\Mensaje>
  */
 class MensajeFactory extends Factory
 {
     protected $model = Mensaje::class;
+
     /**
      * Define the model's default state.
      *
@@ -19,7 +20,7 @@ class MensajeFactory extends Factory
     public function definition(): array
     {
         return [
-            'mensaje' => fake()->paragraph(3, true)
+            'mensaje' => fake()->paragraph(1, true),
         ];
     }
 }

@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Modules\Mensajeria\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateClienteRequest extends FormRequest
+class UpdateMensajeRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.

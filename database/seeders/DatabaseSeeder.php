@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use App\Models\Cliente;
-use App\Models\Cartera;
+use App\Modules\Cartera\Cartera;
+use App\Modules\Cliente\Cliente;
+use App\Modules\Mensajeria\Mensaje;
 use App\Models\User;
-use App\Models\Mensaje;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -41,12 +41,16 @@ class DatabaseSeeder extends Seeder
                 }
             }
 
-            // Crear mensajes aleatorios
+            // Crear mensajes aleatorios (usando la instancia $cliente actual)
+            // 33% de probabilidad de crear mensajes
             if (rand(1, 3) === 1) {
-                $allClients
-                    ->random()
-                    ->has(Mensaje::factory()->count(3), 'mensajes')
-                    ->create();
+                // 1. Obtén la relación `mensajes()` del cliente actual.
+                // 2. Llama a la factory de Mensaje (con ->count(N) si quieres varios)
+                // 3. Llama a create(). La relación automáticamente asigna cliente_id.
+
+                // El cliente actual ($cliente) puede tener entre 1 y 5 mensajes
+                // Mensaje::factory(rand(1, 5))->for($cliente)->create();
+                $cliente->mensajes()->saveMany(Mensaje::factory(rand(1, 5))->make());
             }
 
             // --- Sorteo de Cartera (HasOne) ---

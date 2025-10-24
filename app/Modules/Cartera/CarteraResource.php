@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Resources;
+namespace App\Modules\Cartera;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -17,7 +17,7 @@ class CarteraResource extends JsonResource
         return [
             'cliente_id' => $this->cliente_id,
             'saldo' => $this->saldo,
-            'total_deuda' => $this->total_deuda
+            'total_deuda' => $this->total_deuda,
         ];
     }
 }

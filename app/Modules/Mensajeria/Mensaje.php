@@ -1,24 +1,21 @@
 <?php
 
-namespace App\Models;
+namespace App\Modules\Mensajeria;
 
+use App\Modules\Cliente\Cliente;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Cartera extends Model
+class Mensaje extends Model
 {
-    /** @use HasFactory<\Database\Factories\CarteraFactory> */
+    /** @use HasFactory<\Database\Factories\MensajeFactory> */
     use HasFactory, SoftDeletes;
 
-    protected $fillable = [
-        'cliente_id',
-        'saldo',
-        'total_deuda'
-    ];
+    protected $fillable = ['mensaje', 'cliente_id'];
 
     /**
-     * Get the Cliente that owns the Cartera
+     * Get the Cliente that owns the Mensaje
      *
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */

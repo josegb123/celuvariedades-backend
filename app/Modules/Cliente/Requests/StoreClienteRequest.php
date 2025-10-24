@@ -1,17 +1,17 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Modules\Cliente\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateMensajeRequest extends FormRequest
+class StoreClienteRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -22,7 +22,14 @@ class UpdateMensajeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+
+            'cedula' => 'required|unique:clientes',
+            'nombre' => 'required|string|max:255',
+            'apellidos' => 'required|string|max:255',
+            'telefono' => 'required|string|max:20',
+            'email' => 'required|email|unique:clientes|max:255',
+            'direccion' => 'required|string|max:255',
+
         ];
     }
 }

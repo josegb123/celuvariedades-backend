@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\Cliente;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -15,7 +14,7 @@ return new class extends Migration
         Schema::create('mensajes', function (Blueprint $table) {
             $table->id();
             $table->string('mensaje');
-            $table->unsignedBigInteger('cliente_id')->unique()->nullable()->constrained('clientes', 'id')->onDelete('restrict');
+            $table->foreignId('cliente_id')->index()->constrained()->onDelete('cascade');
             $table->softDeletes();
             $table->timestamps();
         });

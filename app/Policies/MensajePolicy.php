@@ -2,7 +2,7 @@
 
 namespace App\Policies;
 
-use App\Models\Mensaje;
+use App\Modules\Mensajeria\Mensaje;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
 

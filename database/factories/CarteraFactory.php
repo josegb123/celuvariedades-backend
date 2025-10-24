@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Models\Cartera;
+use App\Modules\Cartera\Cartera;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class CarteraFactory extends Factory
@@ -16,7 +16,7 @@ class CarteraFactory extends Factory
     {
         return [
             // Por defecto, ambas columnas inician en cero.
-            // La clave foránea 'cliente_id' será establecida por el ClienteFactory 
+            // La clave foránea 'cliente_id' será establecida por el ClienteFactory
             // cuando se usa el método 'for($cliente)'.
             'saldo' => 0.00,
             'total_deuda' => 0.00,

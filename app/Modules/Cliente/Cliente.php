@@ -1,7 +1,9 @@
 <?php
 
-namespace App\Models;
+namespace App\Modules\Cliente;
 
+use App\Modules\Cartera\Cartera;
+use App\Modules\Mensajeria\Mensaje;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -12,6 +14,7 @@ class Cliente extends Model
     use HasFactory, SoftDeletes;
 
     protected $primaryKey = 'id';
+
     protected $fillable = [
         'cedula',
         'nombre',
@@ -19,7 +22,7 @@ class Cliente extends Model
         'telefono',
         'email',
         'direccion',
-        'aval_id'
+        'aval_id',
     ];
 
     /**
@@ -34,7 +37,7 @@ class Cliente extends Model
 
     /**
      * Get all of the Mensajes for the Cliente
-     *  
+     *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function mensajes()

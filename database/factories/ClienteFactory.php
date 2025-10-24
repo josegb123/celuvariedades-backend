@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Models\Cliente;
-use App\Models\Cartera;
+use App\Modules\Cliente\Cliente;
+use App\Modules\Cartera\Cartera;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Collection;
 

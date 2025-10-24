@@ -1,11 +1,10 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Modules\Cartera;
 
-use App\Http\Requests\StoreCarteraRequest;
-use App\Http\Requests\UpdateCarteraRequest;
-use App\Http\Resources\CarteraResource;
-use App\Models\Cartera;
+use App\Http\Controllers\Controller;
+use App\Modules\Cartera\Requests\StoreCarteraRequest;
+use App\Modules\Cartera\Requests\UpdateCarteraRequest;
 
 class CarteraController extends Controller
 {

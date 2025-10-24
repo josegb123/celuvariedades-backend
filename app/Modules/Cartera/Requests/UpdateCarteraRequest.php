@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Modules\Cartera\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class StoreMensajeRequest extends FormRequest
+class UpdateCarteraRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
