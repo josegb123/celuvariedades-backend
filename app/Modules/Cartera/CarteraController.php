@@ -16,36 +16,14 @@ class CarteraController extends Controller
         return CarteraResource::collection(Cartera::paginate(15));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
 
     /**
      * Store a newly created resource in storage.
      */
     public function store(StoreCarteraRequest $request)
     {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(Cartera $cartera)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Cartera $cartera)
-    {
-        //
+        $cartera = Cartera::create($request->validated());
+        return new CarteraResource($cartera);
     }
 
     /**

@@ -25,7 +25,6 @@ Route::apiResource('/clientes', ClienteController::class);
 Route::apiResource('/carteras', CarteraController::class)->only([
     'store',
     'show',
-    'edit',
     'update',
 ]);
 

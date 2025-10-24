@@ -11,7 +11,7 @@ class StoreCarteraRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -22,7 +22,9 @@ class StoreCarteraRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            'cliente_id' => 'required|unique:clientes',
+            'saldo' => 'required|decimal',
+            'total_deuda' => 'required|decimal'
         ];
     }
 }
