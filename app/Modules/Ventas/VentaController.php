@@ -2,10 +2,11 @@
 
 namespace App\Modules\Ventass;
 
-use App\Modules\Ventas\Venta;
+use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreVentaRequest;
 use App\Http\Requests\UpdateVentaRequest;
-use App\Http\Controllers\Controller;
+use App\Http\Resources\VentaResource;
+use App\Modules\Ventas\Venta;
 
 class VentaController extends Controller
 {
@@ -14,15 +15,7 @@ class VentaController extends Controller
      */
     public function index()
     {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+        return VentaResource::collection(Venta::paginate(15));
     }
 
     /**
@@ -30,7 +23,9 @@ class VentaController extends Controller
      */
     public function store(StoreVentaRequest $request)
     {
-        //
+        $venta = VentaResource::create($request->validated());
+
+        return new VentaResource($venta);
     }
 
     /**
@@ -42,25 +37,9 @@ class VentaController extends Controller
     }
 
     /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Venta $venta)
-    {
-        //
-    }
-
-    /**
      * Update the specified resource in storage.
      */
     public function update(UpdateVentaRequest $request, Venta $venta)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Venta $venta)
     {
         //
     }

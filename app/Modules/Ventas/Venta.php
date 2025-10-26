@@ -2,13 +2,15 @@
 
 namespace App\Modules\Ventas;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Venta extends Model
 {
     /** @use HasFactory<\Database\Factories\VentaFactory> */
-    use HasFactory;
+    use HasFactory,SoftDeletes;
 
     protected $fillable = [
         'cliente_id',
@@ -17,7 +19,7 @@ class Venta extends Model
         'descuento',
         'impuestos',
         'subtotal_venta',
-        'total_venta'
+        'total_venta',
     ];
 
     /**
@@ -25,8 +27,8 @@ class Venta extends Model
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasOne
      */
-    public function user(): HasOne
+    public function user()
     {
-        return $this->hasOne(User::class, 'foreign_key', 'local_key');
+        return $this->belongsTo(User::class);
     }
 }

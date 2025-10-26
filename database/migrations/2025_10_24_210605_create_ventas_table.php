@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('ventas', function (Blueprint $table) {
             $table->id();
             $table->timestamps();
-            $table->foreignId('cliente_id')->constrained()->onDelete('');
+            $table->foreignId('cliente_id')->constrained()->onDelete('restrict');
             $table->foreignId('user_id')->constrained()->onDelete('restrict');
             $table->date('fecha_emision');
             $table->double('descuento', 8, 2)->default(0.00);
