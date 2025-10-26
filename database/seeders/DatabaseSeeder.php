@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
+use App\Models\User;
 use App\Modules\Cartera\Cartera;
 use App\Modules\Cliente\Cliente;
 use App\Modules\Mensajeria\Mensaje;
-use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -71,5 +71,14 @@ class DatabaseSeeder extends Seeder
                 $carteraFactory->for($cliente)->create();
             }
         });
+
+        $this->call([
+            // PASO 1 y 2: Asegurar que las dependencias existan
+            UserSeeder::class,
+            ClienteSeeder::class,
+
+            // PASO 3: Ejecutar el seeder que depende de ellas
+            VentaSeeder::class,
+        ]);
     }
 }

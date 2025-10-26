@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Modules\Cartera\CarteraController;
 use App\Modules\Cliente\ClienteController;
+use App\Modules\Ventas\VentaController;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -20,6 +21,14 @@ Route::get('/user', function (Request $request) {
 
 // enpoint de Clientes
 Route::apiResource('/clientes', ClienteController::class);
+
+// enpoint de Ventas
+Route::apiResource('/ventas', VentaController::class)->only([
+    'index',
+    'store',
+    'show',
+    'update',
+]);
 
 // endpoint de carteras
 Route::apiResource('/carteras', CarteraController::class)->only([

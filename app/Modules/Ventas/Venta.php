@@ -3,6 +3,7 @@
 namespace App\Modules\Ventas;
 
 use App\Models\User;
+use Database\Factories\VentaFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -23,12 +24,18 @@ class Venta extends Model
     ];
 
     /**
-     * Get the user associated with the Venta
+     * Get the user that owns the Venta
      *
-     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    protected static function newFactory()
+    {
+        // NOTA: Esta línea especifica la ruta real de tu ClienteFactory
+        return VentaFactory::new();
     }
 }

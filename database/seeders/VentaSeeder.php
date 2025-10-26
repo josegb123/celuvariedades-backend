@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Modules\Ventas\Venta;
 use Illuminate\Database\Seeder;
 
 class VentaSeeder extends Seeder
@@ -12,6 +12,7 @@ class VentaSeeder extends Seeder
      */
     public function run(): void
     {
-        //
+
+        Venta::factory()->count(15)->create();
     }
 }

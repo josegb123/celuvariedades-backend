@@ -1,12 +1,10 @@
 <?php
 
-namespace App\Modules\Ventass;
+namespace App\Modules\Ventas;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreVentaRequest;
-use App\Http\Requests\UpdateVentaRequest;
-use App\Http\Resources\VentaResource;
-use App\Modules\Ventas\Venta;
+use App\Modules\Ventas\Requests\StoreVentaRequest;
+use App\Modules\Ventas\Requests\UpdateVentaRequest;
 
 class VentaController extends Controller
 {
