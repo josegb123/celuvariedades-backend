@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Modules\Mensajeria;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Modules\Mensajeria\Requests\StoreMensajeRequest;
-use App\Modules\Mensajeria\Requests\UpdateMensajeRequest;
+use App\Http\Requests\StoreMensajeRequest;
+use App\Http\Requests\UpdateMensajeRequest;
+use App\Models\Mensaje;
 
 class MensajeController extends Controller
 {

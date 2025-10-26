@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Modules\Ventas\Requests;
+namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateVentaRequest extends FormRequest
+class UpdateMensajeRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.

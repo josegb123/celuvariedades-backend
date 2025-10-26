@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
+use App\Models\Cartera;
+use App\Models\Cliente;
+use App\Models\Mensaje;
 use App\Models\User;
-use App\Modules\Cartera\Cartera;
-use App\Modules\Cliente\Cliente;
-use App\Modules\Mensajeria\Mensaje;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder

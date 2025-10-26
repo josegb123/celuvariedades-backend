@@ -2,13 +2,13 @@
 
 namespace Database\Factories;
 
+use App\Models\Cliente;
 use App\Models\User;
-use App\Modules\Cliente\Cliente;
-use App\Modules\Ventas\Venta;
+use App\Models\Venta;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Modules\Ventas\Venta>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Venta>
  */
 class VentaFactory extends Factory
 {

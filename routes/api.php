@@ -1,9 +1,9 @@
 <?php
 
 use App\Http\Controllers\AuthController;
-use App\Modules\Cartera\CarteraController;
-use App\Modules\Cliente\ClienteController;
-use App\Modules\Ventas\VentaController;
+use App\Http\Controllers\CarteraController;
+use App\Http\Controllers\ClienteController;
+use App\Http\Controllers\VentaController;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Route;
 

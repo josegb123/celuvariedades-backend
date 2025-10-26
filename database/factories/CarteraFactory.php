@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Modules\Cartera\Cartera;
+use App\Models\Cartera;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class CarteraFactory extends Factory

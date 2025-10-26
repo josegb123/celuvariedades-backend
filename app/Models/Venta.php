@@ -1,9 +1,7 @@
 <?php
 
-namespace App\Modules\Ventas;
+namespace App\Models;
 
-use App\Models\User;
-use Database\Factories\VentaFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -31,11 +29,5 @@ class Venta extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
-    }
-
-    protected static function newFactory()
-    {
-        // NOTA: Esta línea especifica la ruta real de tu ClienteFactory
-        return VentaFactory::new();
     }
 }

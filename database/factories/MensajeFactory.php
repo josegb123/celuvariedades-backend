@@ -2,11 +2,11 @@
 
 namespace Database\Factories;
 
-use App\Modules\Mensajeria\Mensaje;
+use App\Models\Mensaje;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Modules\Mensajeria\Mensaje>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Mensaje>
  */
 class MensajeFactory extends Factory
 {

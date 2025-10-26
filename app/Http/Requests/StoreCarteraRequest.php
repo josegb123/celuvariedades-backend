@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Modules\Cartera\Requests;
+namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateCarteraRequest extends FormRequest
+class StoreCarteraRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -21,11 +21,10 @@ class UpdateCarteraRequest extends FormRequest
      */
     public function rules(): array
     {
-
-
         return [
-            'saldo' => ['required', 'numeric', 'min:0'],
-            'total_deuda' => ['required', 'numeric', 'min:0']
+            'cliente_id' => 'required|unique:clientes',
+            'saldo' => 'required|decimal',
+            'total_deuda' => 'required|decimal',
         ];
     }
 }

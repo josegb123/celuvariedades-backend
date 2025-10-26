@@ -1,10 +1,7 @@
 <?php
 
-namespace App\Modules\Cliente;
+namespace App\Models;
 
-use App\Modules\Cartera\Cartera;
-use App\Modules\Mensajeria\Mensaje;
-use Database\Factories\ClienteFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -31,7 +28,7 @@ class Cliente extends Model
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasOne
      */
-    public function Cartera()
+    public function cartera()
     {
         return $this->hasOne(Cartera::class);
     }
@@ -44,16 +41,5 @@ class Cliente extends Model
     public function mensajes()
     {
         return $this->hasMany(Mensaje::class);
-    }
-
-    /**
-     * Crea una nueva instancia de la factory para el modelo.
-     *
-     * @return \Illuminate\Database\Eloquent\Factories\Factory
-     */
-    protected static function newFactory()
-    {
-        // NOTA: Esta línea especifica la ruta real de tu ClienteFactory
-        return ClienteFactory::new();
     }
 }

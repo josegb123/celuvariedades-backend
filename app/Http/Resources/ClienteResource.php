@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Modules\Cliente;
+namespace App\Http\Resources;
 
-use App\Modules\Cartera\CarteraResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 

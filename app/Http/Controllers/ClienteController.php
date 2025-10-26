@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Modules\Cliente;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Modules\Cliente\Requests\StoreClienteRequest;
+use App\Http\Requests\StoreClienteRequest;
+use App\Http\Resources\ClienteResource;
+use App\Models\Cliente;
 use Illuminate\Http\Request;
 
 class ClienteController extends Controller

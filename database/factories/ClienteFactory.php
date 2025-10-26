@@ -2,10 +2,10 @@
 
 namespace Database\Factories;
 
-use App\Modules\Cliente\Cliente;
-use App\Modules\Cartera\Cartera;
-use Illuminate\Database\Eloquent\Factories\Factory;
+use App\Models\Cartera;
+use App\Models\Cliente;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Factories\Factory;
 
 class ClienteFactory extends Factory
 {
@@ -25,7 +25,7 @@ class ClienteFactory extends Factory
             'telefono' => fake()->phoneNumber(),
             'email' => fake()->unique()->safeEmail(),
             'direccion' => fake()->address(),
-            'aval_id' => NULL
+            'aval_id' => null,
         ];
     }
 
