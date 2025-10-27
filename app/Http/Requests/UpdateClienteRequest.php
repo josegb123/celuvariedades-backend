@@ -11,7 +11,7 @@ class UpdateClienteRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -21,8 +21,16 @@ class UpdateClienteRequest extends FormRequest
      */
     public function rules(): array
     {
+        $clienteId = $this->route('cliente')->id;
+
         return [
-            //
+            'cedula' => 'sometimes|required|unique:clientes,cedula,'.$clienteId,
+            'nombre' => 'sometimes|required|string|max:255',
+            'apellidos' => 'sometimes|required|string|max:255',
+            'telefono' => 'sometimes|required|string|max:20',
+            'email' => 'sometimes|required|email|max:255|unique:clientes,email,'.$clienteId,
+            'direccion' => 'sometimes|required|string|max:255',
+            'aval_id' => 'nullable|exists:clientes,id',
         ];
     }
 }

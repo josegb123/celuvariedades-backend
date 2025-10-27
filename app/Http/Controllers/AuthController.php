@@ -48,6 +48,7 @@ class AuthController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password), // ¡Siempre hashear la contraseña!
+            'role' => 'user', // Asignar un rol por defecto
         ]);
 
         // Generar y devolver el token

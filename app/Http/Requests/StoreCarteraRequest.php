@@ -22,9 +22,12 @@ class StoreCarteraRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'cliente_id' => 'required|unique:clientes',
-            'saldo' => 'required|decimal',
-            'total_deuda' => 'required|decimal',
+            'venta_id' => 'required|exists:ventas,id|unique:carteras,venta_id',
+            'cliente_id' => 'required|exists:clientes,id',
+            'monto_original' => 'required|numeric|min:0',
+            'monto_pendiente' => 'required|numeric|min:0',
+            'fecha_vencimiento' => 'nullable|date',
+            'estado' => 'nullable|string|in:Pendiente,Pagada,Vencida',
         ];
     }
 }

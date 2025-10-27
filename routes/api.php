@@ -23,12 +23,7 @@ Route::get('/user', function (Request $request) {
 Route::apiResource('/clientes', ClienteController::class);
 
 // enpoint de Ventas
-Route::apiResource('/ventas', VentaController::class)->only([
-    'index',
-    'store',
-    'show',
-    'update',
-]);
+Route::apiResource('ventas', VentaController::class);
 
 // endpoint de carteras
 Route::apiResource('/carteras', CarteraController::class)->only([

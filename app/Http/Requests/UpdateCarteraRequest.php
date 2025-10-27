@@ -23,8 +23,10 @@ class UpdateCarteraRequest extends FormRequest
     {
 
         return [
-            'saldo' => ['required', 'numeric', 'min:0'],
-            'total_deuda' => ['required', 'numeric', 'min:0'],
+            'monto_original' => 'sometimes|required|numeric|min:0',
+            'monto_pendiente' => 'sometimes|required|numeric|min:0',
+            'fecha_vencimiento' => 'sometimes|nullable|date',
+            'estado' => 'sometimes|nullable|string|in:Pendiente,Pagada,Vencida',
         ];
     }
 }

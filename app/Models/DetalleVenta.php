@@ -2,39 +2,36 @@
 
 namespace App\Models;
 
-// app/Models/Cartera.php
-
-namespace App\Models;
-
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Cartera extends Model
+class DetalleVenta extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $table = 'carteras'; // Nombre de la tabla en la base de datos
-
     protected $fillable = [
         'venta_id',
-        'cliente_id',
-        'monto_original',
-        'monto_pendiente',
-        'fecha_vencimiento',
-        'estado',
+        'producto_id',
+        'cantidad',
+        'precio_unitario',
+        'subtotal',
     ];
 
+    /**
+     * El detalle pertenece a una venta.
+     */
     public function venta(): BelongsTo
     {
         return $this->belongsTo(Venta::class);
     }
 
-    public function cliente(): BelongsTo
+    /**
+     * El detalle corresponde a un producto.
+     */
+    public function producto(): BelongsTo
     {
-        return $this->belongsTo(Cliente::class);
+        return $this->belongsTo(Producto::class);
     }
-
 }

@@ -29,6 +29,7 @@ class StoreClienteRequest extends FormRequest
             'telefono' => 'required|string|max:20',
             'email' => 'required|email|unique:clientes|max:255',
             'direccion' => 'required|string|max:255',
+            'aval_id' => 'nullable|exists:clientes,id',
 
         ];
     }

@@ -24,13 +24,11 @@ class Cliente extends Model
     ];
 
     /**
-     * Get the Cartera associated with the Cliente
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     * Un Cliente puede tener muchas deudas registradas en Cartera.
      */
     public function cartera()
     {
-        return $this->hasOne(Cartera::class);
+        return $this->hasMany(Cartera::class);
     }
 
     /**
@@ -41,5 +39,15 @@ class Cliente extends Model
     public function mensajes()
     {
         return $this->hasMany(Mensaje::class);
+    }
+
+    /**
+     * Get all of the ventas for the Cliente
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function ventas()
+    {
+        return $this->hasMany(Venta::class);
     }
 }

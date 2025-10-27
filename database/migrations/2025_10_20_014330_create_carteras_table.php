@@ -13,12 +13,22 @@ return new class extends Migration
     {
         Schema::create('carteras', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('cliente_id')->unique()->nullable()->constrained('clientes', 'id')->onDelete('restrict');
-            $table->decimal('saldo', 8, 2)->default(0.00);
-            $table->decimal('total_deuda', 8, 2)->default(0.00);
 
-            $table->softDeletes();
+            // Relaciones
+            $table->unsignedBigInteger('venta_id');
+            $table->unsignedBigInteger('cliente_id');
+
+            // Datos de la Deuda
+            $table->decimal('monto_original', 10, 2);
+            $table->decimal('monto_pendiente', 10, 2); // Campo que se reduce con cada pago
+            $table->date('fecha_vencimiento')->nullable();
+            $table->string('estado', 50)->default('Pendiente'); // Ej: Pendiente, Pagada, Vencida
+
+            // Restricción: Una venta solo puede tener un registro de cartera.
+            $table->unique('venta_id', 'uk_venta_cartera');
+
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

@@ -1,44 +1,62 @@
 <?php
 
+// app/Http/Requests/VentaStoreRequest.php
+
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreVentaRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
+     * Determina si el usuario está autorizado a realizar esta solicitud.
      */
     public function authorize(): bool
     {
-        return false;
+        // En una aplicación real, se verificaría aquí el rol (ej. Vendedor)
+        return auth()->check();
     }
 
     /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * Obtiene las reglas de validación que se aplican a la solicitud.
      */
     public function rules(): array
     {
         return [
-            'cliente_id' => 'required|integer|exists:clientes,id', // Debe existir en la tabla 'clientes'
-            'user_id' => [
-                'required',
-                'integer',
-                'exists:users,id', // Debe existir en la tabla 'users'
-                // 'unique:users' fue REMOVIDO: Un user_id debe ser ÚNICO en la tabla donde se guarda esta venta/registro.
-                // Si es una clave foránea, DEBE existir, pero no necesita ser única.
+            // --- Cabecera de la Venta ---
+            'cliente_id' => 'nullable|exists:clientes,id',
+            'tipo_venta_id' => 'required|exists:tipos_ventas,id', // CRÍTICO para la lógica de Cartera/Inventario
+
+            // Nota: subtotal, iva_monto y total se calculan en el servicio, no se reciben.
+            'descuento_total' => 'nullable|numeric|min:0',
+
+            'metodo_pago' => [
+                'nullable',
+                'string',
+                Rule::in(['efectivo', 'tarjeta', 'transferencia', 'credito', 'plan_separe']),
             ],
 
-            // --- Fechas ---
-            'fecha_emision' => 'required|date|before_or_equal:today', // Fecha válida y no posterior a hoy
+            // --- Ítems de la Venta (DetalleVenta) ---
+            'items' => 'required|array|min:1',
+            'items.*.producto_id' => 'required|exists:productos,id',
+            'items.*.cantidad' => 'required|integer|min:1',
+            'fecha_emision' => 'nullable|date',
+            'estado' => 'nullable|string|in:finalizada,cancelada,pendiente_pago,reembolsada',
+            'iva_porcentaje' => 'nullable|numeric|min:0|max:100',
+        ];
+    }
 
-            // --- Valores Financieros ---
-            'descuento' => 'nullable|numeric|min:0', // Opcional, pero si está, debe ser numérico y no negativo
-            'impuestos' => 'required|numeric|min:0', // Requerido, numérico y no negativo
-            'subtotal_venta' => 'required|numeric|min:0', // Requerido, numérico y no negativo
-            'total_venta' => 'required|numeric|min:0|gte:subtotal_venta', // Requerido, numérico, no negativo y mayor o igual al subtotal
+    /**
+     * Mensajes de error personalizados.
+     */
+    public function messages(): array
+    {
+        return [
+            'tipo_venta_id.required' => 'Debe especificar el tipo de venta (Contado, Crédito, etc.).',
+            'items.required' => 'La venta debe contener al menos un producto.',
+            'items.*.producto_id.required' => 'Cada ítem requiere un producto válido.',
+            'items.*.cantidad.min' => 'La cantidad de cada producto debe ser al menos 1.',
         ];
     }
 }

@@ -15,13 +15,16 @@ class VentaResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'cliente_id' => $this->cliente_id,
             'user_id' => $this->user_id,
+            'cliente_id' => $this->cliente_id,
+            'subtotal' => $this->subtotal,
+            'descuento_total' => $this->descuento,
+            'iva_porcentaje' => $this->iva_porcentaje,
+            'iva_monto' => $this->iva_monto,
+            'estado' => $this->estado,
+            'metodo_pago' => $this->metodo_pago,
+            'total' => $this->total,
             'fecha_emision' => $this->fecha_emision,
-            'descuento' => $this->descuento,
-            'impuestos' => $this->impuestos,
-            'subtotal_venta' => $this->subtotal_venta,
-            'total_venta' => $this->total_venta,
         ];
     }
 }

@@ -13,15 +13,7 @@ class MensajeController extends Controller
      */
     public function index()
     {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+        return Mensaje::all();
     }
 
     /**
@@ -29,7 +21,8 @@ class MensajeController extends Controller
      */
     public function store(StoreMensajeRequest $request)
     {
-        //
+        $mensaje = Mensaje::create($request->validated());
+        return response()->json($mensaje, 201);
     }
 
     /**
@@ -37,15 +30,7 @@ class MensajeController extends Controller
      */
     public function show(Mensaje $mensaje)
     {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Mensaje $mensaje)
-    {
-        //
+        return $mensaje;
     }
 
     /**
@@ -53,7 +38,8 @@ class MensajeController extends Controller
      */
     public function update(UpdateMensajeRequest $request, Mensaje $mensaje)
     {
-        //
+        $mensaje->update($request->validated());
+        return response()->json($mensaje);
     }
 
     /**
@@ -61,6 +47,7 @@ class MensajeController extends Controller
      */
     public function destroy(Mensaje $mensaje)
     {
-        //
+        $mensaje->delete();
+        return response()->json(null, 204);
     }
 }

@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreClienteRequest;
 use App\Http\Resources\ClienteResource;
 use App\Models\Cliente;
-use Illuminate\Http\Request;
+use App\Http\Requests\UpdateClienteRequest;
 
 class ClienteController extends Controller
 {
@@ -49,18 +49,11 @@ class ClienteController extends Controller
      *
      * @param  Cliente  $cliente  (Route Model Binding)
      */
-    public function update(Request $request, Cliente $cliente)
+    public function update(UpdateClienteRequest $request, Cliente $cliente)
     {
         // 1. Validación de datos para la actualización
         // Se ignora el email/cédula actual del cliente para la verificación unique
-        $validateData = $request->validate([
-            'cedula' => 'sometimes|required|unique:clientes,cedula,'.$cliente->id,
-            'nombre' => 'sometimes|required|string|max:255',
-            'apellidos' => 'sometimes|required|string|max:255',
-            'telefono' => 'sometimes|required|string|max:20',
-            'email' => 'sometimes|required|email|max:255|unique:clientes,email,'.$cliente->id,
-            'direccion' => 'sometimes|required|string|max:255',
-        ]);
+        $validateData = $request->validated();
 
         // 2. Actualización del cliente
         $cliente->update($validateData);

@@ -3,26 +3,41 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateVentaRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
+     * Determina si el usuario está autorizado a realizar esta solicitud.
      */
     public function authorize(): bool
     {
-        return false;
+        return auth()->check();
     }
 
     /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * Obtiene las reglas de validación que se aplican a la solicitud.
      */
     public function rules(): array
     {
         return [
-            //
+            // Usamos 'sometimes' porque el campo es opcional en la actualización
+            'estado' => [
+                'sometimes',
+                'string',
+                Rule::in(['finalizada', 'cancelada', 'pendiente_pago', 'reembolsada']),
+            ],
+
+            'metodo_pago' => [
+                'sometimes',
+                'string',
+                Rule::in(['efectivo', 'tarjeta', 'transferencia', 'credito', 'plan_separe']),
+            ],
+            'fecha_emision' => 'sometimes|nullable|date',
+            'iva_porcentaje' => 'sometimes|nullable|numeric|min:0|max:100',
+            'descuento_total' => 'sometimes|nullable|numeric|min:0',
+
+            // No se permite actualizar items, totales o tipo_venta para mantener la integridad.
         ];
     }
 }

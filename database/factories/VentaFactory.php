@@ -21,19 +21,22 @@ class VentaFactory extends Factory
      */
     public function definition(): array
     {
-        $impuestos = fake()->randomFloat(4, 0, 50000);
-        $descuento = fake()->randomFloat(4, 0, 50000);
-        $subtotal = $impuestos + $descuento;
+        $iva_monto = fake()->randomFloat(4, 0, 50000);
+        $descuento_total = fake()->randomFloat(4, 0, 50000);
+        $subtotal = $iva_monto + $descuento_total;
         $total = fake()->randomFloat(4, 0, 50000) + $subtotal;
 
         return [
             'user_id' => User::factory(),
             'cliente_id' => Cliente::factory(),
-            'impuestos' => $impuestos,
-            'descuento' => $descuento,
+            'subtotal' => $subtotal,
+            'descuento_total' => $descuento_total,
+            'iva_porcentaje' => 19.00,
+            'iva_monto' => $iva_monto,
+            'estado' => fake()->randomElement(['progreso', 'finalizada']),
+            'metodo_pago' => fake()->randomElement(['efectivo', 'credito', 'nequi']),
+            'total' => $total,
             'fecha_emision' => fake()->dateTimeThisDecade(),
-            'subtotal_venta' => $subtotal,
-            'total_venta' => $total,
         ];
     }
 }

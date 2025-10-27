@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('telefono');
             $table->string('email');
             $table->string('direccion');
-            $table->foreignId('aval_id')->nullable()->references('id')->on('clientes');
+            $table->foreignId('aval_id')->nullable()->references('id')->on('clientes')->onUpdate('cascade')->onDelete('restrict');
             $table->softDeletes();
             $table->timestamps();
         });

@@ -11,7 +11,7 @@ class StoreMensajeRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -22,7 +22,8 @@ class StoreMensajeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            'mensaje' => 'required|string',
+            'cliente_id' => 'required|exists:clientes,id',
         ];
     }
 }
