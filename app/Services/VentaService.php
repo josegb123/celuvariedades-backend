@@ -1,10 +1,7 @@
 <?php
 
-// app/Services/VentaService.php
-
 namespace App\Services;
 
-use App\Http\Requests\VentaStoreRequest;
 use App\Models\Cartera;
 use App\Models\DetalleVenta;
 use App\Models\Producto;

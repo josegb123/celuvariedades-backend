@@ -39,19 +39,13 @@ class ClienteFactory extends Factory
     public function withCartera(): Factory
     {
         return $this->afterCreating(function (Cliente $cliente) {
-
-            $cartera_type = rand(1, 3);
-            $carteraFactory = Cartera::factory();
-
-            if ($cartera_type === 1) {
-                $carteraFactory = $carteraFactory->withSaldo();
-            } elseif ($cartera_type === 2) {
-                $carteraFactory = $carteraFactory->withDeuda();
-            }
-            // Si es 3, usa el estado base (0, 0)
-
-            // Creación de la ÚNICA Cartera
-            $carteraFactory->for($cliente)->create();
+            $cliente->cartera()->create([
+                'venta_id' => null,
+                'monto_original' => fake()->randomFloat(2, 100, 1000),
+                'monto_pendiente' => fake()->randomFloat(2, 0, 500),
+                'fecha_vencimiento' => fake()->dateTimeBetween('+1 month', '+6 months'),
+                'estado' => fake()->randomElement(['Pendiente', 'Pagada', 'Vencida']),
+            ]);
         });
     }
 }
