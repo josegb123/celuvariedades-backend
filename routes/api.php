@@ -21,11 +21,11 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+Route::apiResource('/ventas', VentaController::class);
 // 2. RUTAS PROTEGIDAS (Requieren Token)
 Route::middleware('auth:sanctum')->group(function () {
     // Aquí se pueden agregar rutas protegidas adicionales
     Route::apiResource('/clientes', ClienteController::class);
-    Route::apiResource('/ventas', VentaController::class);
     Route::apiResource('/carteras', CarteraController::class)->only([
         'store',
         'show',
