@@ -2,7 +2,7 @@
 
 namespace App\Policies;
 
-use App\Modules\Cliente\Cliente;
+use App\Models\Cliente;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
 
@@ -13,7 +13,7 @@ class ClientePolicy
      */
     public function viewAny(User $user): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -21,7 +21,7 @@ class ClientePolicy
      */
     public function view(User $user, Cliente $cliente): bool
     {
-        return false;
+        return true;
     }
 
     /**

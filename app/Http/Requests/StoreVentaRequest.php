@@ -15,7 +15,7 @@ class StoreVentaRequest extends FormRequest
     public function authorize(): bool
     {
         // En una aplicación real, se verificaría aquí el rol (ej. Vendedor)
-        return auth()->check();
+        return true;
     }
 
     /**
@@ -26,7 +26,7 @@ class StoreVentaRequest extends FormRequest
         return [
             // --- Cabecera de la Venta ---
             'cliente_id' => 'nullable|exists:clientes,id',
-            'tipo_venta_id' => 'required|exists:tipos_ventas,id', // CRÍTICO para la lógica de Cartera/Inventario
+            'tipo_venta_id' => 'required|exists:tipo_ventas,id', // CRÍTICO para la lógica de Cartera/Inventario
 
             // Nota: subtotal, iva_monto y total se calculan en el servicio, no se reciben.
             'descuento_total' => 'nullable|numeric|min:0',

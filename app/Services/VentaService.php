@@ -78,7 +78,7 @@ class VentaService
 
             // 5. Gestión de Cartera (Cuentas por Cobrar)
             if ($tipoVenta->maneja_cartera) {
-                if (! $venta->cliente_id) {
+                if (!$venta->cliente_id) {
                     throw new Exception('Una venta a crédito/separe requiere un cliente.');
                 }
 
@@ -132,7 +132,7 @@ class VentaService
 
         foreach ($items as $item) {
             $producto = $productosDB->get($item['producto_id']);
-            if (! $producto) {
+            if (!$producto) {
                 throw new Exception("Producto con ID {$item['producto_id']} no existe en la base de datos.");
             }
 

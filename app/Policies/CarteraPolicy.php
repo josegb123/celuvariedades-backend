@@ -2,7 +2,7 @@
 
 namespace App\Policies;
 
-use App\Modules\Cartera\Cartera;
+use App\Models\Cartera;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
 

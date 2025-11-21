@@ -6,6 +6,7 @@ use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\FacturaController;
 use App\Http\Controllers\MovimientoFinancieroController;
 use App\Http\Controllers\VentaController;
+use App\Http\Controllers\ProductoController;
 use Illuminate\Http\Request; // Cambiado de Illuminate\Http\Client\Request
 use Illuminate\Support\Facades\Route;
 
@@ -21,11 +22,11 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::apiResource('/ventas', VentaController::class);
 // 2. RUTAS PROTEGIDAS (Requieren Token)
 Route::middleware('auth:sanctum')->group(function () {
     // Aquí se pueden agregar rutas protegidas adicionales
     Route::apiResource('/clientes', ClienteController::class);
+    Route::apiResource('/ventas', VentaController::class);
     Route::apiResource('/carteras', CarteraController::class)->only([
         'store',
         'show',
@@ -33,4 +34,5 @@ Route::middleware('auth:sanctum')->group(function () {
     ]);
     Route::apiResource('/movimientos-financieros', MovimientoFinancieroController::class);
     Route::apiResource('/facturas', FacturaController::class);
+    Route::apiResource('/productos', ProductoController::class);
 });

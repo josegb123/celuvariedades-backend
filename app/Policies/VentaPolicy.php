@@ -29,7 +29,7 @@ class VentaPolicy
      */
     public function create(User $user): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -37,7 +37,7 @@ class VentaPolicy
      */
     public function update(User $user, Venta $venta): bool
     {
-        return false;
+        return true;
     }
 
     /**

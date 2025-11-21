@@ -12,7 +12,7 @@ class VentaSeeder extends Seeder
      */
     public function run(): void
     {
-        Venta::factory()->count(15)->create([
+        Venta::factory()->count(1)->create([
             'tipo_venta_id' => 1, // Asignar un tipo de venta válido
         ]);
     }
