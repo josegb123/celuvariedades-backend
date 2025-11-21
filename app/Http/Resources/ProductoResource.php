@@ -21,6 +21,7 @@ class ProductoResource extends JsonResource
             'codigo_barra' => $this->codigo_barra,
             'nombre' => $this->nombre,
             'descripcion' => $this->descripcion,
+            'imagen_url' => $this->imagen_url,
             'precio_compra' => $this->precio_compra,
             'precio_venta' => $this->precio_venta,
             'stock_actual' => $this->stock_actual,

@@ -27,6 +27,8 @@ class UpdateProductoRequest extends FormRequest
             'codigo_barra' => 'nullable|string|max:255|unique:productos,codigo_barra,' . $this->route('producto'),
             'nombre' => 'sometimes|required|string|max:255',
             'descripcion' => 'nullable|string',
+            'imagen' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'imagen_url' => 'nullable|string',
             'precio_compra' => 'sometimes|required|numeric|min:0',
             'precio_venta' => 'sometimes|required|numeric|min:0',
             'stock_actual' => 'sometimes|required|integer|min:0',
