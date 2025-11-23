@@ -15,52 +15,47 @@ class ProductoController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request): JsonResponse // ⬅️ Paso 1: Aceptar el objeto Request
+    public function index(Request $request): JsonResponse
     {
-        // 1. Iniciar la consulta
         $query = Producto::with(['categoria', 'user']);
 
-        // 2. ⬅️ Paso 2: Aplicar filtro si el parámetro 'search' está presente
+        // Filtro por término de búsqueda (nombre o código de barra)
         $query->when($request->filled('search'), function ($q) use ($request) {
             $searchTerm = $request->input('search');
 
-            // Aplicar la lógica de búsqueda (busca por nombre o código de barra)
-            $q->where('nombre', 'like', '%' . $searchTerm . '%')
-                ->orWhere('codigo_barra', 'like', '%' . $searchTerm . '%');
-            // Opcional: Si los IDs son números grandes, puedes buscarlos también:
-            // ->orWhere('id', $searchTerm);
+            $q->where('nombre', 'like', "%{$searchTerm}%")
+                ->orWhere('codigo_barra', 'like', "%{$searchTerm}%");
         });
 
-        // 3. Obtener los resultados paginados (limitamos a 10 productos por página para el buscador)
+        // Filtro por ID de categoría
+        $query->when($request->filled('categoria_id'), function ($q) use ($request) {
+            $q->where('categoria_id', $request->input('categoria_id'));
+        });
+
         $productos = $query->paginate(10);
 
-        // 4. Devolver la respuesta
         return response()->json(ProductoResource::collection($productos));
     }
+
+    // -------------------------------------------------------------------
 
     /**
      * Store a newly created resource in storage.
      */
     public function store(StoreProductoRequest $request): JsonResponse
-{
-    // 1. Obtener los datos validados
-    $data = $request->validated();
-    
-    // 2. Manejo de la subida de la imagen
-    if ($request->hasFile('imagen')) {
-        // Almacenar el archivo en el disco 'public' dentro de la carpeta 'productos'
-        $path = $request->file('imagen')->store('productos', 'public');
-        
-        // Obtener la URL pública y guardarla en los datos para el modelo
-        $data['imagen_url'] = Storage::url($path); 
+    {
+        $data = $request->validated();
+
+        if ($request->hasFile('imagen')) {
+            $data = $this->handleImageUpload($request, $data);
+        }
+
+        $producto = Producto::create($data);
+
+        return response()->json(new ProductoResource($producto->load(['categoria', 'user'])), 201);
     }
-    
-    // 3. Crear el producto en la base de datos
-    $producto = Producto::create($data);
-    
-    // 4. Devolver la respuesta con el resource
-    return response()->json(new ProductoResource($producto->load(['categoria', 'user'])), 201);
-}
+
+    // -------------------------------------------------------------------
 
     /**
      * Display the specified resource.
@@ -70,56 +65,96 @@ class ProductoController extends Controller
         return response()->json(new ProductoResource($producto->load(['categoria', 'user'])));
     }
 
+    // -------------------------------------------------------------------
+
     /**
      * Update the specified resource in storage.
      */
     public function update(UpdateProductoRequest $request, Producto $producto): JsonResponse
-{
-    // 1. Obtener los datos validados
-    $data = $request->validated();
-    
-    // 2. Manejo de la subida de la imagen
-    if ($request->hasFile('imagen')) {
-        
-        // 2a. Opcional: Eliminar la imagen antigua si existe
-        if ($producto->imagen_url) {
-            // Convertir la URL pública a la ruta interna para poder eliminarla
-            $oldPath = str_replace('/storage/', '', $producto->imagen_url);
-            if (Storage::disk('public')->exists($oldPath)) {
-                Storage::disk('public')->delete($oldPath);
-            }
+    {
+        $data = $request->validated();
+
+        if ($request->hasFile('imagen')) {
+            // Eliminar la imagen anterior y subir la nueva
+            $data = $this->handleImageUpload($request, $data, $producto);
+        } elseif (isset($data['imagen_url']) && $data['imagen_url'] === null) {
+            // Eliminar imagen si se pide explícitamente y no se sube una nueva
+            $this->handleImageDeletion($producto);
+            $data['imagen_url'] = null;
         }
-        
-        // 2b. Almacenar el nuevo archivo
-        $path = $request->file('imagen')->store('productos', 'public');
-        
-        // 2c. Guardar la nueva URL
-        $data['imagen_url'] = Storage::url($path);
-    
-    } elseif (isset($data['imagen_url']) && $data['imagen_url'] === null) {
-        // 2d. Si la imagen se elimina explícitamente (se envía null en el request)
-        if ($producto->imagen_url) {
-            $oldPath = str_replace('/storage/', '', $producto->imagen_url);
-            if (Storage::disk('public')->exists($oldPath)) {
-                Storage::disk('public')->delete($oldPath);
-            }
-        }
-        $data['imagen_url'] = null;
+
+        $producto->update($data);
+
+        return response()->json(new ProductoResource($producto->load(['categoria', 'user'])));
     }
-    
-    // 3. Actualizar el producto en la base de datos
-    $producto->update($data);
-    
-    // 4. Devolver la respuesta
-    return response()->json(new ProductoResource($producto->load(['categoria', 'user'])));
-}
+
+    // -------------------------------------------------------------------
 
     /**
      * Remove the specified resource from storage.
      */
     public function destroy(Producto $producto): JsonResponse
     {
+        // Se recomienda eliminar la imagen asociada al producto antes de eliminar el registro
+        if ($producto->imagen_url) {
+            $this->handleImageDeletion($producto);
+        }
+
         $producto->delete();
         return response()->json(null, 204);
+    }
+
+    // -------------------------------------------------------------------
+    // MÉTODOS PRIVADOS PARA MANEJO DE ARCHIVOS
+    // -------------------------------------------------------------------
+
+    /**
+     * Sube el nuevo archivo y genera la URL.
+     * @param Request $request
+     * @param array $data
+     * @param Producto|null $producto
+     * @return array
+     */
+    private function handleImageUpload(Request $request, array $data, ?Producto $producto = null): array
+    {
+        // 1. Eliminar antigua imagen si existe (solo en update)
+        if ($producto && $producto->imagen_url) {
+            $this->handleImageDeletion($producto);
+        }
+
+        // 2. Almacenar nueva imagen
+        // Usamos 'productos' como subdirectorio en el disco 'public'
+        $path = $request->file('imagen')->store('productos', 'public');
+
+        // 3. Generar la URL completa (usando asset() o Storage::url() con la configuración APP_URL correcta)
+        // Usamos asset() ya que fue el método que resolvió el problema del puerto en desarrollo
+        $data['imagen_url'] = asset('storage/' . $path);
+
+        // 4. Eliminar el objeto UploadedFile
+        unset($data['imagen']);
+
+        return $data;
+    }
+
+    /**
+     * Elimina el archivo de imagen del disco.
+     * @param Producto $producto
+     */
+    private function handleImageDeletion(Producto $producto): void
+    {
+        if (!$producto->imagen_url) {
+            return;
+        }
+
+        // Extraer el path relativo (e.g., productos/archivo.jpg) del URL
+        $urlPath = parse_url($producto->imagen_url, PHP_URL_PATH);
+
+        // Limpiar el prefijo /storage/ para obtener el path relativo al disco
+        // Esto funciona incluso si la URL tiene host/puerto/storage/...
+        $oldPath = trim(str_replace('/storage/', '', $urlPath), '/');
+
+        if ($oldPath && Storage::disk('public')->exists($oldPath)) {
+            Storage::disk('public')->delete($oldPath);
+        }
     }
 }

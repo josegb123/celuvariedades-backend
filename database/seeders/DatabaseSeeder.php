@@ -10,7 +10,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             UserSeeder::class,
-            TipoVentaSeeder::class, // Seeder para tipos de venta
+            TipoVentaSeeder::class,
             TipoMovimientoFinancieroSeeder::class,
             CategoriaSeeder::class,
             ProductoSeeder::class,
@@ -20,7 +20,6 @@ class DatabaseSeeder extends Seeder
             DetalleVentaSeeder::class,
             FacturaSeeder::class,
             TipoMovimientoInventarioSeeder::class
-
         ]);
     }
 }

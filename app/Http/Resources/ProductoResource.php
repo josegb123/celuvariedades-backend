@@ -28,10 +28,7 @@ class ProductoResource extends JsonResource
             'stock_reservado' => $this->stock_reservado,
             'stock_minimo' => $this->stock_minimo,
             'categoria' => new CategoriaResource($this->whenLoaded('categoria')),
-            'user' => new UserResource($this->whenLoaded('user')),
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
-            'deleted_at' => $this->deleted_at,
+            'user' => new UserLiteResource($this->whenLoaded('user'))
         ];
     }
 }

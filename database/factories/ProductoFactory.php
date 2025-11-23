@@ -20,24 +20,24 @@ class ProductoFactory extends Factory
         if ($hasImage) {
             $width = fake()->numberBetween(600, 800);
             $height = fake()->numberBetween(400, 600);
-            $imageId = fake()->numberBetween(1, 1084); 
-            $imageUrl = "https://picsum.photos/id/{$imageId}/{$width}/{$height}";
+            $imageId = fake()->numberBetween(1, 1084);
+            $imageUrl = "https://picsum.photos/id/{$imageId}/{$width}/{$height}.webp";
         }
-        
+
         return [
-            'categoria_id' => Categoria::factory(),
+            'categoria_id' => Categoria::all()->random()->id,
             'user_id' => User::factory(),
             'codigo_barra' => fake()->ean13(),
-            
+
             // ?? Uso de Nombres coherentes
             'nombre' => fake()->randomElement($nombres),
-            
+
             // ?? Uso de Descripciones coherentes
             // Combina una oración genérica con un adjetivo clave del diccionario
             'descripcion' => fake()->randomElement($adjetivos),
-            
-            'imagen_url' => $imageUrl, 
-                
+
+            'imagen_url' => $imageUrl,
+
             'precio_compra' => fake()->randomFloat(2, 50, 250),
             'precio_venta' => fake()->randomFloat(2, 70, 350),
             'stock_actual' => fake()->numberBetween(10, 100),

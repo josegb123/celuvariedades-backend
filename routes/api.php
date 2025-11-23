@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CarteraController;
+use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\FacturaController;
 use App\Http\Controllers\MovimientoFinancieroController;
@@ -33,6 +34,9 @@ Route::middleware('auth:sanctum')->group(function () {
         'update',
     ]);
     Route::apiResource('/movimientos-financieros', MovimientoFinancieroController::class);
+    Route::apiResource('/categorias', CategoriaController::class);
     Route::apiResource('/facturas', FacturaController::class);
     Route::apiResource('/productos', ProductoController::class);
+    Route::post('productos/{producto}', [ProductoController::class, 'update']);
+
 });

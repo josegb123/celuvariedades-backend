@@ -18,6 +18,7 @@ class Producto extends Model
         'codigo_barra',
         'nombre',
         'descripcion',
+        'imagen_url',
         'precio_compra',
         'precio_venta',
         'stock_actual',
