@@ -7,20 +7,37 @@ use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
     /**
-     * Display a listing of the resource.
-     * Muestra una lista paginada de todos los usuarios *activos*.
+     * Muestra una lista filtrada y paginada de usuarios.
      */
-    public function index(): JsonResponse
+    public function index(Request $request)
     {
-        // Cuando SoftDeletes está activo, Eloquent *automáticamente* // excluye los registros eliminados suavemente de las consultas.
-        $users = User::paginate(10);
+        // 1. Obtener parámetros de la URL: /api/users?search=admin&role=admin&page=1
+        $search = $request->input('search');
+        $role = $request->input('role');
+        $perPage = $request->input('per_page', 10); // Valor por defecto 10
 
-        return UserResource::collection($users)->response();
+        $users = User::query()
+            // 2. Aplicar filtro de búsqueda
+            ->when($search, function ($query, $search) {
+                // Buscar en nombre o email
+                $query->where('name', 'like', '%' . $search . '%')
+                    ->orWhere('email', 'like', '%' . $search . '%');
+            })
+            // 3. Aplicar filtro de rol
+            ->when($role, function ($query, $role) {
+                $query->where('role', $role);
+            })
+            // 4. Aplicar ordenación (opcional)
+            ->orderBy('name', 'asc')
+            // 5. Paginar los resultados
+            ->paginate($perPage);
+
+        return response()->json($users);
     }
 
     /**
