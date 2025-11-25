@@ -22,16 +22,18 @@ class StoreProductoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'categoria_id' => 'required|exists:categorias,id',
-            'user_id' => 'required|exists:users,id', // Assuming user_id is passed in the request, might be set automatically in controller
+            'categoria_id' => ['sometimes', 'required', 'exists:categorias,id'],
+            'user_id' => ['sometimes', 'required', 'exists:users,id'],
             'codigo_barra' => 'nullable|string|max:255|unique:productos,codigo_barra',
-            'nombre' => 'required|string|max:255',
-            'descripcion' => 'nullable|string',
-            'precio_compra' => 'required|numeric|min:0',
-            'precio_venta' => 'required|numeric|min:0',
-            'stock_actual' => 'required|integer|min:0',
-            'stock_reservado' => 'required|integer|min:0',
-            'stock_minimo' => 'required|integer|min:0',
+            'nombre' => ['sometimes', 'required', 'string', 'max:255'],
+            'descripcion' => ['nullable', 'string'],
+            'imagen' => ['sometimes', 'nullable', 'image', 'mimes:jpeg,png,jpg,gif,svg,webp', 'max:2048'],
+            'imagen_url' => ['sometimes', 'nullable', 'string', 'max:2048'],
+            'precio_compra' => ['sometimes', 'required', 'numeric', 'min:0'],
+            'precio_venta' => ['sometimes', 'required', 'numeric', 'min:0'],
+            'stock_actual' => ['sometimes', 'required', 'integer', 'min:0'],
+            'stock_reservado' => ['sometimes', 'required', 'integer', 'min:0'],
+            'stock_minimo' => ['sometimes', 'required', 'integer', 'min:0'],
         ];
     }
 }

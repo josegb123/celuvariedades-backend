@@ -6,6 +6,7 @@ use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\FacturaController;
 use App\Http\Controllers\MovimientoFinancieroController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\VentaController;
 use App\Http\Controllers\ProductoController;
 use Illuminate\Http\Request; // Cambiado de Illuminate\Http\Client\Request
@@ -37,6 +38,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/categorias', CategoriaController::class);
     Route::apiResource('/facturas', FacturaController::class);
     Route::apiResource('/productos', ProductoController::class);
+    Route::apiResource('/usuarios', UserController::class);
+    Route::put('/usuarios/{id}/restore', [UserController::class, 'restore']);
     Route::post('productos/{producto}', [ProductoController::class, 'update']);
 
 });

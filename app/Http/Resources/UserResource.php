@@ -18,8 +18,15 @@ class UserResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
+            'role' => $this->role,
+
+            // Añadir campos de auditoría si son relevantes
+            'created_at' => $this->created_at ? $this->created_at->format('Y-m-d H:i:s') : null,
+            'updated_at' => $this->updated_at ? $this->updated_at->format('Y-m-d H:i:s') : null,
+
+            // Opcional: Podrías añadir el conteo de ventas si fuera necesario, 
+            // pero lo omitiremos para la lista principal.
+            // 'ventas_count' => $this->whenCounted('ventas'), 
         ];
     }
 }

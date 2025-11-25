@@ -44,7 +44,7 @@ class UpdateProductoRequest extends FormRequest
             // Usamos arrays para todas las reglas (más claro que la cadena |)
             'imagen' => ['sometimes', 'nullable', 'image', 'mimes:jpeg,png,jpg,gif,svg,webp', 'max:2048'],
 
-            'imagen_url' => ['nullable', 'string'],
+            'imagen_url' => ['sometimes', 'nullable', 'string', 'max:2048'],
             'precio_compra' => ['sometimes', 'required', 'numeric', 'min:0'],
             'precio_venta' => ['sometimes', 'required', 'numeric', 'min:0'],
             'stock_actual' => ['sometimes', 'required', 'integer', 'min:0'],
