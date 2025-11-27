@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -57,5 +58,36 @@ class Venta extends Model
     public function cartera()
     {
         return $this->hasOne(Cartera::class);
+    }
+
+    /**
+     * Define el Accessor para generar el resumen de productos.
+     * Ejemplo: "3x Camisa Azul, 1x Pantalón Negro"
+     * * @return \Illuminate\Database\Eloquent\Casts\Attribute
+     */
+    protected function resumenProductos(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                // Si la relación 'detalles' no está cargada, la cargamos para evitar N+1
+                if (!$this->relationLoaded('detalles')) {
+                    $this->load('detalles');
+                }
+
+                // Si aún no hay detalles (ej: factory en inicio), retornar vacío
+                if ($this->detalles->isEmpty()) {
+                    return 'Sin detalles de productos';
+                }
+
+                // Mapea la colección para crear el texto de cada ítem: "Cantidad x NombreProducto"
+                $resumen = $this->detalles->map(function ($detalle) {
+                    // Usamos el nombre histórico guardado en el detalle (más preciso)
+                    return (float) $detalle->cantidad . 'x ' . $detalle->nombre_producto;
+                });
+
+                // Une todos los ítems en una sola cadena separada por coma
+                return $resumen->implode(', ');
+            }
+        );
     }
 }

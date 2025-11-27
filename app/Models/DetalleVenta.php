@@ -11,12 +11,28 @@ class DetalleVenta extends Model
 {
     use HasFactory, SoftDeletes;
 
+    // Asume que el nombre de la tabla es 'detalle_ventas' o 'venta_items'
+
     protected $fillable = [
+        // Relaciones
         'venta_id',
         'producto_id',
+
+        // --- Campos Transaccionales (Originales) ---
         'cantidad',
-        'precio_unitario',
-        'subtotal',
+        'precio_unitario', // Precio Bruto por unidad (antes de descuento de línea)
+        'subtotal',        // Cantidad * Precio Unitario (Neto de IVA, Bruto de descuento)
+
+        // --- Campos Históricos (CRÍTICO) ---
+        'nombre_producto', // Almacenar el nombre en el momento de la venta
+        'codigo_barra',    // Almacenar el código en el momento de la venta
+        'precio_costo',    // CRÍTICO para calcular la ganancia
+
+        // --- Desglose de Impuestos y Descuentos ---
+        'iva_porcentaje',  // Tasa de IVA (Ej: 19)
+        'iva_monto',       // Monto de IVA
+        'descuento_monto', // Monto de descuento aplicado a esta línea
+        // Si tienes más impuestos (ej. INC) deberías agregarlos aquí
     ];
 
     /**

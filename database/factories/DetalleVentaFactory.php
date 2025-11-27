@@ -4,31 +4,49 @@ namespace Database\Factories;
 
 use App\Models\Producto;
 use App\Models\Venta;
+use App\Models\DetalleVenta;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
-/**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\DetalleVenta>
- */
 class DetalleVentaFactory extends Factory
 {
+    protected $model = DetalleVenta::class; // Especificar el modelo
+
     /**
      * Define the model's default state.
-     *
-     * @return array<string, mixed>
      */
     public function definition(): array
     {
-        $producto = Producto::all()->random();
-        $cantidad = fake()->numberBetween(0, 15);
-        $precio_unitario = $producto->precio_venta;
-        $subtotal = $cantidad * $precio_unitario;
+        $producto = Producto::inRandomOrder()->first() ?? Producto::factory()->create();
+
+        $cantidad = fake()->numberBetween(1, 10);
+        $precioUnitario = $producto->precio_venta;
+        $descuentoMonto = fake()->boolean(20) ? fake()->randomFloat(2, 100, 500) : 0.00;
+        $ivaPorcentaje = 19.00; // Asumir 19%
+
+        // Cálculo del subtotal y del IVA para el detalle
+        $subtotalBrutoLinea = $cantidad * $precioUnitario;
+        $subtotalNetoLinea = $subtotalBrutoLinea - $descuentoMonto;
+        $ivaMonto = $subtotalNetoLinea * ($ivaPorcentaje / 100);
 
         return [
-            'venta_id' => Venta::all()->random()->id,
+            // Relaciones (venta_id se suele establecer en el VentaFactory)
+            'venta_id' => Venta::inRandomOrder()->first()->id ?? Venta::factory(), // Fallback si no hay ventas
             'producto_id' => $producto->id,
+
+            // Datos Transaccionales
             'cantidad' => $cantidad,
-            'precio_unitario' => $precio_unitario,
-            'subtotal' => $subtotal,
+            'precio_unitario' => $precioUnitario,
+            'subtotal' => $subtotalNetoLinea, // Subtotal de la línea (neto de descuento, sin IVA)
+
+            // --- Campos Históricos (CRÍTICOS) ---
+            'nombre_producto' => $producto->nombre,
+            'codigo_barra' => $producto->codigo_barra,
+            'precio_costo' => $producto->precio_compra,
+
+            // --- Desglose de Impuestos/Descuentos ---
+            'iva_porcentaje' => $ivaPorcentaje,
+            'iva_monto' => $ivaMonto,
+            'descuento_monto' => $descuentoMonto,
         ];
     }
 }

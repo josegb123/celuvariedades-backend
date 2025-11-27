@@ -14,7 +14,7 @@ class StoreVentaRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        // En una aplicación real, se verificaría aquí el rol (ej. Vendedor)
+        // El control de acceso se delega generalmente a Policies o Middleware en la ruta/controlador.
         return true;
     }
 
@@ -25,25 +25,43 @@ class StoreVentaRequest extends FormRequest
     {
         return [
             // --- Cabecera de la Venta ---
+            // cliente_id: Puede ser nulo si es una venta POS a consumidor final (C/F).
             'cliente_id' => 'nullable|exists:clientes,id',
-            'tipo_venta_id' => 'required|exists:tipo_ventas,id', // CRÍTICO para la lógica de Cartera/Inventario
 
-            // Nota: subtotal, iva_monto y total se calculan en el servicio, no se reciben.
+            // tipo_venta_id: CRÍTICO. Debe existir en una tabla de catálogo (Contado, Crédito, etc.)
+            'tipo_venta_id' => 'required|exists:tipo_ventas,id',
+
+            // DescuentoTotal: Se recibe para ser aplicado en el servicio.
             'descuento_total' => 'nullable|numeric|min:0',
 
+            // Método de Pago: Requerido si el estado es 'finalizada' (o se asume que será crédito).
             'metodo_pago' => [
                 'nullable',
                 'string',
                 Rule::in(['efectivo', 'tarjeta', 'transferencia', 'credito', 'plan_separe']),
             ],
 
+            // Fechas y Estados
+            'fecha_emision' => 'nullable|date',
+            // El estado por defecto será PENDIENTE_PAGO o FINALIZADA, el servicio lo manejará.
+            'estado' => 'nullable|string|in:finalizada,cancelada,pendiente_pago,reembolsada',
+
+            // IVA: Se recibe si se permite la modificación manual de la tasa de IVA base.
+            'iva_porcentaje' => 'nullable|numeric|min:0|max:100',
+
+
             // --- Ítems de la Venta (DetalleVenta) ---
             'items' => 'required|array|min:1',
-            'items.*.producto_id' => 'required|exists:productos,id',
-            'items.*.cantidad' => 'required|integer|min:1',
-            'fecha_emision' => 'nullable|date',
-            'estado' => 'nullable|string|in:finalizada,cancelada,pendiente_pago,reembolsada',
-            'iva_porcentaje' => 'nullable|numeric|min:0|max:100',
+            // Validación de cada ítem anidado
+            'items.*.producto_id' => 'required|integer|exists:productos,id',
+            'items.*.cantidad' => 'required|numeric|min:0.01', // La cantidad puede ser decimal (ej. peso)
+
+            // Permitimos descuentos por ítem, aunque se calcule en el servicio.
+            'items.*.descuento' => 'nullable|numeric|min:0',
+
+            // Precio Unitario: Opcional. Si no se envía, se toma el precio del producto, 
+            // pero si se envía, se permite modificarlo (útil para ofertas o cambios manuales).
+            'items.*.precio_unitario' => 'nullable|numeric|min:0',
         ];
     }
 
@@ -55,8 +73,9 @@ class StoreVentaRequest extends FormRequest
         return [
             'tipo_venta_id.required' => 'Debe especificar el tipo de venta (Contado, Crédito, etc.).',
             'items.required' => 'La venta debe contener al menos un producto.',
-            'items.*.producto_id.required' => 'Cada ítem requiere un producto válido.',
-            'items.*.cantidad.min' => 'La cantidad de cada producto debe ser al menos 1.',
+            'items.*.producto_id.exists' => 'El ID del producto (:input) en el ítem no existe.',
+            'items.*.cantidad.required' => 'Debe especificar la cantidad para todos los ítems.',
+            'items.*.cantidad.min' => 'La cantidad de cada producto debe ser mayor a cero (0.01).',
         ];
     }
 }

@@ -12,23 +12,37 @@ return new class extends Migration {
     {
         Schema::create('ventas', function (Blueprint $table) {
             $table->id();
+
+            // --- Relaciones ---
             $table->foreignId('user_id')
                 ->constrained('users')
                 ->onUpdate('cascade')
-                ->onDelete('restrict');
+                ->onDelete('restrict')
+                ->comment('Vendedor que registró la venta');
+
             $table->foreignId('cliente_id')
                 ->nullable()
                 ->constrained('clientes')
                 ->onUpdate('cascade')
-                ->onDelete('restrict');
+                ->onDelete('restrict')
+                ->comment('Cliente que recibe la factura/tiquete');
+
+            // Usar foreignId para la tabla de catálogo
             $table->unsignedBigInteger('tipo_venta_id');
-            $table->decimal('subtotal', 10, 2);
-            $table->decimal('descuento_total', 10, 2)->default(0.00);
-            $table->decimal('iva_porcentaje', 5, 2)->default(19.00);
-            $table->decimal('iva_monto', 10, 2);
-            $table->decimal('total', 10, 2);
-            $table->string('estado')->default('finalizada');
-            $table->string('metodo_pago')->nullable();
+
+            // --- Totales Financieros ---
+            $table->decimal('subtotal', 10, 2)->comment('Suma de subtotales de ítems antes de impuestos y descuento general');
+            $table->decimal('descuento_total', 10, 2)->default(0.00)->comment('Descuento aplicado al total de la venta');
+
+            // Mantener IVA en la cabecera (Aunque el detalle es el que contiene el desglose)
+            $table->decimal('iva_porcentaje', 5, 2)->default(19.00)->comment('Tasa de IVA general de la venta');
+            $table->decimal('iva_monto', 10, 2)->comment('Monto total de IVA');
+
+            $table->decimal('total', 10, 2)->comment('Monto final a pagar');
+
+            // --- Estado y Pago ---
+            $table->string('estado', 50)->default('finalizada')->comment('finalizada, cancelada, pendiente_pago, reembolsada');
+            $table->string('metodo_pago', 50)->nullable();
             $table->date('fecha_emision')->default(today());
 
             $table->timestamps();

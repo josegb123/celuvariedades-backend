@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             DetalleVentaSeeder::class,
             FacturaSeeder::class,
             TipoMovimientoInventarioSeeder::class
+
         ]);
     }
 }

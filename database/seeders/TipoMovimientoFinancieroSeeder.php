@@ -12,7 +12,43 @@ class TipoMovimientoFinancieroSeeder extends Seeder
      */
     public function run(): void
     {
-        TipoMovimientoFinanciero::create(['nombre' => 'Ingreso']);
-        TipoMovimientoFinanciero::create(['nombre' => 'Egreso']);
+        // --- 1. INGRESOS ---
+        TipoMovimientoFinanciero::create([
+            'nombre' => 'Venta de Productos',
+            'descripcion' => 'Ingreso principal generado por ventas al contado o con tarjeta.',
+            'tipo' => 'Ingreso', // Opcional, si tienes una columna 'tipo'
+        ]);
+
+        TipoMovimientoFinanciero::create([
+            'nombre' => 'Abono a Cartera',
+            'descripcion' => 'Recibos de caja por pagos de clientes a ventas realizadas a crédito.',
+            'tipo' => 'Ingreso',
+        ]);
+
+        TipoMovimientoFinanciero::create([
+            'nombre' => 'Ingreso Operacional Vario',
+            'descripcion' => 'Ingresos por servicios o productos externos al oficio principal (el que definiste originalmente).',
+            'tipo' => 'Ingreso',
+        ]);
+
+
+        // --- 2. EGRESOS ---
+        TipoMovimientoFinanciero::create([
+            'nombre' => 'Compra de Productos',
+            'descripcion' => 'Salida de dinero para adquirir mercancía (Costo de Venta).',
+            'tipo' => 'Egreso',
+        ]);
+
+        TipoMovimientoFinanciero::create([
+            'nombre' => 'Gasto Operacional Vario',
+            'descripcion' => 'Salida de dinero para pagos de nómina, servicios, o gastos generales.',
+            'tipo' => 'Egreso',
+        ]);
+
+        TipoMovimientoFinanciero::create([
+            'nombre' => 'Reembolso a Cliente',
+            'descripcion' => 'Salida de dinero por la devolución de una venta previamente registrada.',
+            'tipo' => 'Egreso',
+        ]);
     }
 }

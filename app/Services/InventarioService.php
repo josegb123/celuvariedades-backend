@@ -28,60 +28,63 @@ class InventarioService
      */
     public function ajustarStock(
         int $productoId,
-        int $cantidad,
-        int $tipoMovimientoId,
+        float $cantidad, // Usamos float por si hay cantidades decimales (peso)
+        string $tipoMovimientoNombre, // Usamos Nombre para la integración (ej: 'Venta', 'Transferencia Salida')
+        float $costoUnitario, // Recibimos el costo del producto para el Kárdex
         int $userId,
         string $referenciaTabla,
         int $referenciaId
     ): Producto {
 
-        // 1. Iniciar la Transacción DB (CRÍTICO)
-        return DB::transaction(function () use (
-            $productoId,
-            $cantidad,
-            $tipoMovimientoId,
-            $userId,
-            $referenciaTabla,
-            $referenciaId
-        ) {
+        return DB::transaction(function () use ($productoId, $cantidad, $tipoMovimientoNombre, $costoUnitario, $userId, $referenciaTabla, $referenciaId) {
             $producto = $this->productoModel->lockForUpdate()->find($productoId);
-            $tipoMovimiento = TipoMovimientoInventario::find($tipoMovimientoId);
 
-            if (! $producto) {
+            // 1. Búsqueda de Tipo Movimiento por NOMBRE
+            $tipoMovimiento = TipoMovimientoInventario::where('nombre', $tipoMovimientoNombre)->first();
+
+            if (!$producto) {
                 throw new Exception('Producto no encontrado.');
             }
-            if (! $tipoMovimiento) {
-                throw new Exception('Tipo de movimiento de inventario no válido.');
+            if (!$tipoMovimiento) {
+                // Esto ayuda a atrapar errores en la configuración de los Seeders.
+                throw new Exception("Tipo de movimiento de inventario '{$tipoMovimientoNombre}' no válido.");
             }
 
-            $esEntrada = $tipoMovimiento->tipo_operacion === 'ENTRADA';
-            $afectaReserva = $tipoMovimiento->reserva_stock ?? false; // Nuevo campo de control si lo incluiste
+            $esSalida = $tipoMovimiento->tipo_operacion === 'SALIDA';
 
+            // 2. Lógica para determinar si afecta 'stock_actual' o 'stock_reservado'
+            // Solo 'Venta' afecta stock_actual. 'Transferencia Salida' (usado para Separe) afecta stock_reservado.
+            $afectaReserva = ($tipoMovimientoNombre === 'Transferencia Salida');
             $columnaStock = $afectaReserva ? 'stock_reservado' : 'stock_actual';
 
-            // 2. Validación de Stock (Solo para Salidas NO reservadas)
-            if (! $esEntrada && ! $afectaReserva) {
+            // 3. Validación de Stock
+            if ($esSalida) {
                 if ($producto->{$columnaStock} < $cantidad) {
-                    throw new StockInsuficienteException("Stock insuficiente para el producto {$producto->nombre}. Disponible: {$producto->{$columnaStock}}.");
+                    throw new StockInsuficienteException(
+                        productoId: $productoId,
+                        cantidadSolicitada: $cantidad,
+                        cantidadDisponible: $producto->{$columnaStock},
+                        message: "Stock insuficiente para el producto {$producto->nombre} en {$columnaStock}."
+                    );
                 }
             }
 
-            // 3. Actualización del Stock
-            if ($esEntrada) {
-                $producto->increment($columnaStock, $cantidad);
-            } else {
+            // 4. Actualización del Stock (bloqueado con lockForUpdate)
+            if ($esSalida) {
                 $producto->decrement($columnaStock, $cantidad);
+            } else {
+                $producto->increment($columnaStock, $cantidad);
             }
 
-            $producto->save(); // Guarda los cambios
+            $producto->save();
 
-            // 4. Registro en el Kárdex (MovimientoInventario)
+            // 5. Registro en el Kárdex (MovimientoInventario)
             $this->movimientoModel->create([
                 'producto_id' => $productoId,
                 'user_id' => $userId,
-                'tipo_movimiento_id' => $tipoMovimientoId,
+                'tipo_movimiento_id' => $tipoMovimiento->id, // Usamos el ID encontrado
                 'cantidad' => $cantidad,
-                'costo_unitario' => $producto->precio_compra, // Usamos precio_compra como costo base
+                'costo_unitario' => $costoUnitario, // CRÍTICO: Registramos el costo en el Kárdex
                 'referencia_tabla' => $referenciaTabla,
                 'referencia_id' => $referenciaId,
             ]);
