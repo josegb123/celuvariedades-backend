@@ -48,10 +48,10 @@ class VentaController extends Controller
 
         // 3. FILTRO: Buscar por Fecha (Rango o fecha exacta)
         if ($fecha = $request->get('fecha')) {
-            $query->whereDate('fecha_emision', $fecha);
+            $query->whereDate('created_at', $fecha);
         } elseif ($fechaInicio = $request->get('fecha_inicio')) {
             $fechaFin = $request->get('fecha_fin', now());
-            $query->whereBetween('fecha_emision', [$fechaInicio, $fechaFin]);
+            $query->whereBetween('created_at', [$fechaInicio, $fechaFin]);
         }
 
         // 4. SOFT DELETES: Incluir eliminados si se solicita
@@ -79,7 +79,7 @@ class VentaController extends Controller
         $validatedData['user_id'] = auth()->id() ?? 1; // Asigna el user_id autenticado
 
         try {
-            // CRÍTICO: La lógica de registro de venta, creación de detalles, actualización de
+            // La lógica de registro de venta, creación de detalles, actualización de
             // inventario, y manejo de cartera debe estar centralizada y manejada en una transacción 
             // de base de datos dentro del servicio.
             $venta = $this->ventaService->registrarVenta($validatedData);
@@ -136,7 +136,7 @@ class VentaController extends Controller
      */
     public function destroy(Venta $venta): JsonResponse
     {
-        // CRÍTICO: Idealmente, el servicio de venta debería manejar la reversión 
+        // Idealmente, el servicio de venta debería manejar la reversión 
         // de inventario y la creación de notas de crédito/ajustes de cartera aquí.
         // Aquí solo se usa SoftDelete (la reversión debería ocurrir antes de la eliminación).
         $venta->delete();

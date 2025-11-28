@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Cartera;
+use App\Models\CuentaPorCobrar;
 use App\Models\DetalleVenta;
 use App\Models\Producto;
 use App\Models\TipoVenta;
@@ -13,29 +13,33 @@ use Illuminate\Support\Facades\DB;
 class VentaService
 {
     private InventarioService $inventarioService;
+    private MovimientoFinancieroService $movimientoFinancieroService; //  Nuevo servicio
 
-    public function __construct(InventarioService $inventarioService)
+    //  Inyección del nuevo servicio
+    public function __construct(InventarioService $inventarioService, MovimientoFinancieroService $movimientoFinancieroService)
     {
         $this->inventarioService = $inventarioService;
+        $this->movimientoFinancieroService = $movimientoFinancieroService;
     }
 
     /**
-     * Procesa una venta completa, actualiza inventario y genera cartera si es necesario.
+     * Procesa una venta completa, actualiza inventario, registra movimiento financiero y genera cartera si es necesario.
      *
      * @param  array  $validatedData  Datos validados del VentaStoreRequest.
      */
     public function registrarVenta(array $validatedData): Venta
     {
-        // 1. Iniciar la Transacción (CRÍTICO: Garantiza la atomicidad)
+        // 1. Iniciar la Transacción (Garantiza la atomicidad)
         return DB::transaction(function () use ($validatedData) {
 
-            // Obtener el tipo de venta (Contado, Crédito, Separe) para la lógica de control
             $tipoVenta = TipoVenta::findOrFail($validatedData['tipo_venta_id']);
             $items = $validatedData['items'];
 
             // 2. Pre-cálculo y Preparación de Datos
             $descuentoGlobalMonto = $validatedData['descuento_total'] ?? 0.00;
             $calculos = $this->calcularTotales($items, $descuentoGlobalMonto);
+
+
 
 
             $datosVenta = [
@@ -47,8 +51,8 @@ class VentaService
                 'iva_porcentaje' => $calculos['iva_porcentaje'],
                 'iva_monto' => $calculos['iva_monto'],
                 'total' => $calculos['total'],
-                'estado' => $tipoVenta->maneja_cartera ? 'pendiente_pago' : 'finalizada', // Estado inicial
-                'metodo_pago' => $validatedData['metodo_pago'] ?? ($tipoVenta->maneja_cartera ? 'credito' : 'efectivo')
+                'estado' => $tipoVenta->maneja_cartera ? 'pendiente_pago' : 'finalizada',
+                'metodo_pago' => $validatedData['metodo_pago'] ?? ($tipoVenta->maneja_cartera ? 'credito' : 'efectivo'),
             ];
 
             // 3. Creación de la Cabecera de la Venta
@@ -57,60 +61,99 @@ class VentaService
             // 4. Procesamiento de Ítems (Detalles y Kárdex)
             foreach ($calculos['items'] as $itemCalculado) {
 
-                // Creación del Detalle de Venta
+                // Creación del Detalle de Venta (se mantiene la lógica)
                 $detalle = DetalleVenta::create([
                     'venta_id' => $venta->id,
                     'producto_id' => $itemCalculado['producto_id'],
                     'cantidad' => $itemCalculado['cantidad'],
                     'precio_unitario' => $itemCalculado['precio_unitario'],
                     'subtotal' => $itemCalculado['subtotal'],
-
-                    // CAMPOS HISTÓRICOS Y DE COSTO
                     'nombre_producto' => $itemCalculado['nombre_producto'],
                     'codigo_barra' => $itemCalculado['codigo_barra'],
-                    'precio_costo' => $itemCalculado['precio_costo'], // Costo del producto
+                    'precio_costo' => $itemCalculado['precio_costo'],
                     'iva_porcentaje' => $itemCalculado['iva_porcentaje'],
                     'iva_monto' => $itemCalculado['iva_monto'],
-                    'descuento_monto' => $itemCalculado['descuento_monto'], // Descuento de línea
+                    'descuento_monto' => $itemCalculado['descuento_monto'],
                 ]);
 
                 // Actualización del Inventario (Delegado)
-                // Usamos 1 ('Venta') para Salida final y 7 ('Transferencia Salida') si es para Plan Separe
                 $tipoMovimientoNombre = $tipoVenta->nombre === 'Plan Separe' ? 'Transferencia Salida' : 'Venta';
 
                 $this->inventarioService->ajustarStock(
                     productoId: $itemCalculado['producto_id'],
                     cantidad: $itemCalculado['cantidad'],
-                    tipoMovimientoNombre: $tipoMovimientoNombre, // Usamos nombre para flexibilidad
-                    costoUnitario: $itemCalculado['precio_costo'], // Pasamos el costo
+                    tipoMovimientoNombre: $tipoMovimientoNombre,
+                    costoUnitario: $itemCalculado['precio_costo'],
                     userId: $venta->user_id,
                     referenciaTabla: 'ventas',
                     referenciaId: $venta->id
                 );
             }
 
-            // 5. Gestión de Cartera (Cuentas por Cobrar)
+            // 5. Gestión de Movimiento Financiero (Solo si es venta de contado/tarjeta/transferencia)
+            if (!$tipoVenta->maneja_cartera) {
+                // Registrar el ingreso total de la venta en el libro de caja
+                $this->movimientoFinancieroService->registrarMovimiento(
+                    monto: $venta->total,
+                    tipoMovimientoNombre: 'Venta de Productos', // Tipo: Ingreso
+                    metodoPago: $venta->metodo_pago,
+                    userId: $venta->user_id,
+                    referenciaTabla: 'ventas',
+                    referenciaId: $venta->id
+                );
+            }
+
+            // 6. Gestión de Cartera (Cuentas por Cobrar)
             if ($tipoVenta->maneja_cartera) {
                 if (!$venta->cliente_id) {
                     throw new Exception('Una venta a crédito/separe requiere un cliente.');
                 }
 
-                Cartera::create([
+                //  Determinar la fecha de vencimiento
+                $diasPlazo = $this->determinarPlazoCredito($calculos['items']);
+
+                CuentaPorCobrar::create([
                     'venta_id' => $venta->id,
                     'cliente_id' => $venta->cliente_id,
                     'monto_original' => $venta->total,
-                    'monto_pendiente' => $venta->total, // Asumimos que todo el valor queda como pendiente
-                    'estado_deuda' => 'Pendiente',
-                    // La fecha de vencimiento debe ser calculada aquí (no implementada para brevedad)
+                    'monto_pendiente' => $venta->total,
+                    'estado' => 'Pendiente',
+                    'fecha_vencimiento' => now()->addDays($diasPlazo), //  Plazo Dinámico
                 ]);
+
                 $venta->estado = 'pendiente_pago';
                 $venta->save();
             }
 
-            return $venta->load('detalles.producto', 'cliente', 'user');
+            return $venta->load('detalles.producto', 'cliente', 'user', 'cuentaPorCobrar');
         });
     }
 
+    /**
+     * Determina el plazo máximo de crédito (en días) basado en los productos vendidos.
+     * @param array $itemsCalculados
+     * @return int
+     */
+    private function determinarPlazoCredito(array $itemsCalculados): int
+    {
+        // Plazo por defecto (30 días = 1 mes)
+        $plazoDefault = 30;
+        $plazoCelulares = 180; // 6 meses
+
+        $productoIds = collect($itemsCalculados)->pluck('producto_id')->all();
+
+        //  Obtener las categorías de los productos vendidos        
+        $productosConCategoria = Producto::whereIn('id', $productoIds)
+            ->with('categoria')
+            ->get();
+
+        // Verificar si alguno de los productos pertenece a la categoría 'Celulares'
+        $esCelular = $productosConCategoria->contains(function ($producto) {
+            return optional($producto->categoria)->nombre === 'Celulares';
+        });
+
+        return $esCelular ? $plazoCelulares : $plazoDefault;
+    }
 
     /**
      * Consulta precios y calcula el subtotal, IVA y total de la venta.

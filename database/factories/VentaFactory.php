@@ -21,7 +21,7 @@ class VentaFactory extends Factory
         return [
             'user_id' => User::factory(),
             'cliente_id' => Cliente::factory(),
-            'tipo_venta_id' => 1, // Asume que 1 es Contado, ajusta si tienes un factory para TipoVenta
+            'tipo_venta_id' => 1, // 1 para venta contado
 
             // Inicializamos los campos calculados en cero
             'subtotal' => 0.00,
@@ -33,7 +33,6 @@ class VentaFactory extends Factory
             // Otros campos
             'estado' => fake()->randomElement(['pendiente_pago', 'finalizada']),
             'metodo_pago' => fake()->randomElement(['efectivo', 'credito', 'tarjeta']),
-            'fecha_emision' => fake()->dateTimeBetween('-6 months', 'now'),
         ];
     }
 
@@ -48,7 +47,7 @@ class VentaFactory extends Factory
 
             // 1. 🔍 Seleccionar una colección de productos ALEATORIOS y ÚNICOS
             $productosParaVenta = Producto::inRandomOrder()
-                ->take(fake()->numberBetween(1, $maxItems)) // CRÍTICO: Toma entre 1 y maxItems productos
+                ->take(fake()->numberBetween(1, $maxItems)) // Toma entre 1 y maxItems productos
                 ->get();
 
             $detalles = $productosParaVenta->map(function ($producto) use ($venta) {

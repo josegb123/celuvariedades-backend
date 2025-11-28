@@ -50,4 +50,12 @@ class Cliente extends Model
     {
         return $this->hasMany(Venta::class);
     }
+
+    /**
+     * Un Cliente tiene muchas Cuentas Por Cobrar activas o históricas.
+     */
+    public function cuentasPorCobrar()
+    {
+        return $this->hasMany(CuentaPorCobrar::class, 'cliente_id');
+    }
 }

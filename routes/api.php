@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AbonoController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CarteraController;
 use App\Http\Controllers\CategoriaController;
@@ -42,4 +43,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/usuarios/{id}/restore', [UserController::class, 'restore']);
     Route::post('productos/{producto}', [ProductoController::class, 'update']);
 
+    Route::prefix('cuentas-por-cobrar/{cuentaPorCobrar}')->group(function () {
+
+        // Anidamos la acción 'store' de Abonos
+        // URL: POST /api/cuentas-por-cobrar/123/abonos
+        Route::post('abonos', [AbonoController::class, 'store']);
+    });
 });

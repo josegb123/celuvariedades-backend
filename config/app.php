@@ -65,7 +65,8 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    // config/app.php
+    'timezone' => env('APP_TIMEZONE', 'America/Bogota'), // Ajusta a tu zona
 
     /*
     |--------------------------------------------------------------------------

@@ -2,13 +2,12 @@
 
 namespace Database\Factories;
 
-use App\Models\Venta;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Factura>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\AbonoCartera>
  */
-class FacturaFactory extends Factory
+class AbonoCarteraFactory extends Factory
 {
     /**
      * Define the model's default state.

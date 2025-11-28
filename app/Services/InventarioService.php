@@ -84,7 +84,7 @@ class InventarioService
                 'user_id' => $userId,
                 'tipo_movimiento_id' => $tipoMovimiento->id, // Usamos el ID encontrado
                 'cantidad' => $cantidad,
-                'costo_unitario' => $costoUnitario, // CRÍTICO: Registramos el costo en el Kárdex
+                'costo_unitario' => $costoUnitario, // Registramos el costo en el Kárdex
                 'referencia_tabla' => $referenciaTabla,
                 'referencia_id' => $referenciaId,
             ]);

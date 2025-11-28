@@ -8,7 +8,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class MovimientoFinancieroResource extends JsonResource
 {
     /**
-     * Transform the resource into an array.
+     * Transforma el recurso en un array.
      *
      * @return array<string, mixed>
      */
@@ -17,13 +17,25 @@ class MovimientoFinancieroResource extends JsonResource
         return [
             'id' => $this->id,
             'monto' => $this->monto,
-            'tipo_movimiento_id' => $this->tipo_movimiento_id,
-            'descripcion' => $this->descripcion,
-            'fecha' => $this->fecha,
-            'venta_id' => $this->venta_id,
-            'user_id' => $this->user_id,
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
+            'tipo' => $this->tipo, // Ingreso o Egreso
+            'metodo_pago' => $this->metodo_pago,
+
+            // Auditoría de referencia
+            'referencia_tabla' => $this->referencia_tabla,
+            'referencia_id' => $this->referencia_id,
+
+            // Relaciones de auditoría
+            'tipo_movimiento' => [
+                'id' => $this->tipoMovimiento->id ?? null,
+                'nombre' => $this->tipoMovimiento->nombre ?? 'N/A',
+                'descripcion' => $this->tipoMovimiento->descripcion ?? 'N/A',
+            ],
+            'registrado_por' => [
+                'id' => $this->user->id ?? null,
+                'nombre' => $this->user->name ?? 'Sistema',
+            ],
+
+            'fecha_registro' => $this->created_at->toDateTimeString(),
         ];
     }
 }

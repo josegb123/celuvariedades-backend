@@ -41,8 +41,6 @@ class StoreVentaRequest extends FormRequest
                 Rule::in(['efectivo', 'tarjeta', 'transferencia', 'credito', 'plan_separe']),
             ],
 
-            // Fechas y Estados
-            'fecha_emision' => 'nullable|date',
             // El estado por defecto será PENDIENTE_PAGO o FINALIZADA, el servicio lo manejará.
             'estado' => 'nullable|string|in:finalizada,cancelada,pendiente_pago,reembolsada',
 

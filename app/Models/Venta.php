@@ -24,7 +24,6 @@ class Venta extends Model
         'total',
         'estado',
         'metodo_pago',
-        'fecha_emision',
     ];
 
     // Relaciones de pertenencia
@@ -58,6 +57,16 @@ class Venta extends Model
     public function cartera()
     {
         return $this->hasOne(Cartera::class);
+    }
+
+
+    /**
+     * Una Venta tiene una CuentaPorCobrar (si es a crédito).
+     */
+    public function cuentaPorCobrar()
+    {
+        // Debe ser HasOne porque una venta solo tiene una deuda.
+        return $this->hasOne(CuentaPorCobrar::class, 'venta_id');
     }
 
     /**

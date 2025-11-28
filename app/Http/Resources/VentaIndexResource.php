@@ -15,8 +15,7 @@ class VentaIndexResource extends JsonResource
     return [
       'venta_id' => $this->id,
 
-      // --- Información Clave para el Listado ---
-      'fecha_emision' => $this->fecha_emision,
+      // --- Información Clave para el Listado ---      
       'estado' => $this->estado,
 
       // Campo Calculado: Muestra el resumen de los productos (ej: 3x Pantalón, 1x Camisa)

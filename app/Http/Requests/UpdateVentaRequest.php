@@ -41,8 +41,7 @@ class UpdateVentaRequest extends FormRequest
                 Rule::in(['efectivo', 'tarjeta', 'transferencia', 'credito', 'plan_separe', 'otro']),
             ],
 
-            // --- Campos Modificables ---
-            'fecha_emision' => 'sometimes|nullable|date',
+            // --- Campos Modificables ---            
             'iva_porcentaje' => 'sometimes|nullable|numeric|min:0|max:100',
             'descuento_total' => 'sometimes|nullable|numeric|min:0',
 

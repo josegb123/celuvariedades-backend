@@ -43,7 +43,6 @@ return new class extends Migration {
             // --- Estado y Pago ---
             $table->string('estado', 50)->default('finalizada')->comment('finalizada, cancelada, pendiente_pago, reembolsada');
             $table->string('metodo_pago', 50)->nullable();
-            $table->date('fecha_emision')->default(today());
 
             $table->timestamps();
             $table->softDeletes();
