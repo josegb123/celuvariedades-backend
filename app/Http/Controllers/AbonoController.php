@@ -17,30 +17,28 @@ class AbonoController extends Controller
   }
 
   /**
-   * Registra un nuevo abono para una Cuenta Por Cobrar específica.
+   * Registra un nuevo abono para una Cuenta Por Cobrar específica (ID en el body).
    *
    * @param StoreAbonoRequest $request
-   * @param int $cuentaPorCobrarId ID del recurso maestro
    * @return JsonResponse
    */
-  public function store(StoreAbonoRequest $request, int $cuentaPorCobrarId)
+  public function store(StoreAbonoRequest $request)
   {
     try {
       $validatedData = $request->validated();
 
-      // 🚨 Aseguramos que el ID de la cuenta esté en los datos a procesar
-      $validatedData['cuenta_por_cobrar_id'] = $cuentaPorCobrarId;
+      // 🚨 Aseguramos el user_id
       $validatedData['user_id'] = auth()->id();
 
       $abono = $this->abonoService->procesarAbono($validatedData);
 
-      // 🚨 Puedes crear un AbonoCarteraResource aquí
       return response()->json([
-        'message' => 'Abono registrado exitosamente. Deuda actualizada.',
-        'abono' => $abono, // O usa un AbonoCarteraResource
+        'message' => 'Abono registrado exitosamente. Deuda y movimiento financiero actualizados.',
+        'abono' => $abono->load('cuentaPorCobrar'), // Cargamos la relación para la respuesta
       ], SymfonyResponse::HTTP_CREATED);
 
     } catch (\Throwable $e) {
+      // El uso de 400 es adecuado cuando la lógica de negocio falla (ej. saldo excedido).
       return response()->json([
         'error' => 'Error al procesar el abono',
         'message' => $e->getMessage(),

@@ -51,23 +51,31 @@ class MovimientoFinancieroController extends Controller
      * @param StoreMovimientoFinancieroRequest $request
      * @return MovimientoFinancieroResource|JsonResponse
      */
+    /**
+     * Registra un nuevo movimiento financiero (ej. Gasto Operacional Vario).
+     */
     public function store(StoreMovimientoFinancieroRequest $request)
     {
         try {
             $validatedData = $request->validated();
+
+            // Los movimientos manuales no tienen una referencia ID/Tabla o Venta ID
+            $referenciaTabla = $validatedData['referencia_tabla'] ?? 'manual';
+            $referenciaId = $validatedData['referencia_id'] ?? 0;
 
             $movimiento = $this->movimientoFinancieroService->registrarMovimiento(
                 monto: $validatedData['monto'],
                 tipoMovimientoNombre: $validatedData['tipo_movimiento_nombre'],
                 metodoPago: $validatedData['metodo_pago'],
                 userId: $validatedData['user_id'],
-                referenciaTabla: $validatedData['referencia_tabla'] ?? 'manual',
-                referenciaId: $validatedData['referencia_id'] ?? 0
+                descripcion: $validatedData['descripcion'],
+                referenciaTabla: $referenciaTabla,
+                referenciaId: $referenciaId,
+
             );
 
             // Cargar relaciones para el resource
             $movimiento->load('tipoMovimiento', 'user');
-
             return new MovimientoFinancieroResource($movimiento);
 
         } catch (Exception $e) {
@@ -76,6 +84,7 @@ class MovimientoFinancieroController extends Controller
                 'message' => $e->getMessage(),
             ], 400);
         }
+
     }
 
     /**

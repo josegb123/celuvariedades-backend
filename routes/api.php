@@ -43,10 +43,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/usuarios/{id}/restore', [UserController::class, 'restore']);
     Route::post('productos/{producto}', [ProductoController::class, 'update']);
 
-    Route::prefix('cuentas-por-cobrar/{cuentaPorCobrar}')->group(function () {
+    Route::prefix('cuentas-por-cobrar/')->group(function () {
 
         // Anidamos la acción 'store' de Abonos
-        // URL: POST /api/cuentas-por-cobrar/123/abonos
+        // URL: POST /api/cuentas-por-cobrar/abonos
         Route::post('abonos', [AbonoController::class, 'store']);
     });
 });

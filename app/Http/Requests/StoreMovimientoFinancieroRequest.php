@@ -21,33 +21,26 @@ class StoreMovimientoFinancieroRequest extends FormRequest
      */
     public function rules(): array
     {
-        // Lista de nombres de tipos de movimiento válidos que pueden ser creados manualmente
         $tiposPermitidos = [
-            'Ingreso Operacional Vario', // Manualmente un ingreso
-            'Gasto Operacional Vario',  // Manualmente un egreso
-            // 'Compra de Productos' podría ser manual, pero 'Venta de Productos' y 'Abono a Cartera' son automáticos.
+            'Ingreso Operacional Vario',
+            'Gasto Operacional Vario',
         ];
 
         return [
-            // CRÍTICO: Usamos el nombre del tipo para el servicio
             'tipo_movimiento_nombre' => [
                 'required',
                 'string',
                 Rule::in($tiposPermitidos),
             ],
-            // El monto siempre debe ser positivo
             'monto' => 'required|numeric|min:0.01',
-
             'metodo_pago' => [
                 'required',
                 'string',
                 Rule::in(['efectivo', 'tarjeta', 'transferencia', 'cheque', 'otro']),
             ],
 
-            // Opcional, pero útil para describir el gasto/ingreso
-            'descripcion_adicional' => 'nullable|string|max:255',
+            'descripcion' => 'required|string|max:255',
 
-            // Los campos referencia_tabla y referencia_id no son requeridos para movimientos manuales (varios).
             'referencia_tabla' => 'nullable|string|max:50',
             'referencia_id' => 'nullable|integer',
         ];

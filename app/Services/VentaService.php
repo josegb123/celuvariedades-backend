@@ -95,8 +95,10 @@ class VentaService
                 // Registrar el ingreso total de la venta en el libro de caja
                 $this->movimientoFinancieroService->registrarMovimiento(
                     monto: $venta->total,
-                    tipoMovimientoNombre: 'Venta de Productos', // Tipo: Ingreso
+                    tipoMovimientoNombre: 'Venta de Productos',
+                    descripcion: $venta->resumenProductos,
                     metodoPago: $venta->metodo_pago,
+                    ventaId: $venta->id,
                     userId: $venta->user_id,
                     referenciaTabla: 'ventas',
                     referenciaId: $venta->id
