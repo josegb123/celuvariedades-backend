@@ -22,8 +22,13 @@ class StoreMovimientoFinancieroRequest extends FormRequest
     public function rules(): array
     {
         $tiposPermitidos = [
+            'Venta de Productos',
+            'Abono a Cartera',
             'Ingreso Operacional Vario',
+            'Compra de Productos',
             'Gasto Operacional Vario',
+            'Reembolso a Cliente'
+
         ];
 
         return [
@@ -40,7 +45,7 @@ class StoreMovimientoFinancieroRequest extends FormRequest
             ],
 
             'descripcion' => 'required|string|max:255',
-
+            'user_id' => ['required', 'integer', 'exists:users,id'],
             'referencia_tabla' => 'nullable|string|max:50',
             'referencia_id' => 'nullable|integer',
         ];

@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
             TipoMovimientoInventarioSeeder::class,
             TipoVentaSeeder::class,
             CategoriaSeeder::class,
+            ProveedorSeeder::class,
             ProductoSeeder::class,
             ClienteSeeder::class,
             //VentaSeeder::class,

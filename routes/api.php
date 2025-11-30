@@ -5,8 +5,11 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CarteraController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ClienteController;
+use App\Http\Controllers\CuentaPorCobrarController;
 use App\Http\Controllers\FacturaController;
 use App\Http\Controllers\MovimientoFinancieroController;
+use App\Http\Controllers\ProveedorController;
+use App\Http\Controllers\TipoMovimientoFinancieroController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VentaController;
 use App\Http\Controllers\ProductoController;
@@ -36,17 +39,18 @@ Route::middleware('auth:sanctum')->group(function () {
         'update',
     ]);
     Route::apiResource('/movimientos-financieros', MovimientoFinancieroController::class);
+    Route::apiResource('/tipo-movimientos-financieros', TipoMovimientoFinancieroController::class);
     Route::apiResource('/categorias', CategoriaController::class);
     Route::apiResource('/facturas', FacturaController::class);
     Route::apiResource('/productos', ProductoController::class);
     Route::apiResource('/usuarios', UserController::class);
     Route::put('/usuarios/{id}/restore', [UserController::class, 'restore']);
-    Route::post('productos/{producto}', [ProductoController::class, 'update']);
+    Route::post('/productos/{producto}', [ProductoController::class, 'update']);
+    Route::apiResource('/proveedores', ProveedorController::class);
 
-    Route::prefix('cuentas-por-cobrar/')->group(function () {
 
-        // Anidamos la acción 'store' de Abonos
-        // URL: POST /api/cuentas-por-cobrar/abonos
-        Route::post('abonos', [AbonoController::class, 'store']);
-    });
+    Route::get('/cuentas-por-cobrar', [CuentaPorCobrarController::class, 'index']);
+    Route::get('/cuentas-por-cobrar/{id}', [CuentaPorCobrarController::class, 'show']);
+    Route::post('/abonos', [AbonoController::class, 'store']);
+
 });

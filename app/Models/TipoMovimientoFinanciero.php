@@ -13,6 +13,7 @@ class TipoMovimientoFinanciero extends Model
     protected $fillable = [
         'nombre',
         'descripcion',
+        'tipo'
     ];
 
     public function movimientosFinancieros()

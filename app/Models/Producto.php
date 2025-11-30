@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -48,5 +49,19 @@ class Producto extends Model
     public function detallesVenta(): HasMany
     {
         return $this->hasMany(DetalleVenta::class);
+    }
+
+    /**
+     * Un Producto puede ser suministrado por muchos Proveedores (Relación Muchos a Muchos).
+     * Esta relación utiliza la tabla pivote 'proveedor_producto'.
+     *
+     * @return BelongsToMany
+     */
+    public function proveedores(): BelongsToMany
+    {
+        return $this->belongsToMany(Proveedor::class, 'proveedor_producto', 'producto_id', 'proveedor_id')
+            // Incluimos los campos extra de la tabla pivote
+            ->withPivot(['precio_costo', 'referencia_proveedor'])
+            ->withTimestamps(); // Si tu tabla pivote tiene created_at/updated_at
     }
 }
