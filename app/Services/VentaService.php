@@ -13,9 +13,12 @@ use Illuminate\Support\Facades\DB;
 class VentaService
 {
     private InventarioService $inventarioService;
-    private MovimientoFinancieroService $movimientoFinancieroService; //  Nuevo servicio
+    private MovimientoFinancieroService $movimientoFinancieroService;
 
-    //  Inyección del nuevo servicio
+    /**
+     * @param InventarioService $inventarioService
+     * @param MovimientoFinancieroService $movimientoFinancieroService
+     */
     public function __construct(InventarioService $inventarioService, MovimientoFinancieroService $movimientoFinancieroService)
     {
         $this->inventarioService = $inventarioService;
@@ -25,7 +28,9 @@ class VentaService
     /**
      * Procesa una venta completa, actualiza inventario, registra movimiento financiero y genera cartera si es necesario.
      *
-     * @param  array  $validatedData  Datos validados del VentaStoreRequest.
+     * @param  array  $validatedData  Datos validados (incluye user_id y iva_porcentaje).
+     * @return Venta
+     * @throws Exception
      */
     public function registrarVenta(array $validatedData): Venta
     {
@@ -35,23 +40,28 @@ class VentaService
             $tipoVenta = TipoVenta::findOrFail($validatedData['tipo_venta_id']);
             $items = $validatedData['items'];
 
-            // 2. Pre-cálculo y Preparación de Datos
+            // Obtener el porcentaje de IVA desde los datos validados (será 0 si es null/desmarcado)
+            $ivaPorcentajeInput = (float) ($validatedData['iva_porcentaje'] ?? 0);
             $descuentoGlobalMonto = $validatedData['descuento_total'] ?? 0.00;
-            $calculos = $this->calcularTotales($items, $descuentoGlobalMonto);
 
+            // 2. Pre-cálculo y Preparación de Datos
+            $calculos = $this->calcularTotales($items, $descuentoGlobalMonto, $ivaPorcentajeInput);
 
-
-
+            // El estado por defecto se establece a partir del tipo de venta
             $datosVenta = [
                 'user_id' => $validatedData['user_id'],
                 'cliente_id' => $validatedData['cliente_id'] ?? null,
                 'tipo_venta_id' => $tipoVenta->id,
+
+                // Totales calculados
                 'subtotal' => $calculos['subtotal'],
                 'descuento_total' => $calculos['descuento_total'],
                 'iva_porcentaje' => $calculos['iva_porcentaje'],
                 'iva_monto' => $calculos['iva_monto'],
                 'total' => $calculos['total'],
-                'estado' => $tipoVenta->maneja_cartera ? 'pendiente_pago' : 'finalizada',
+
+                // Estado y método de pago
+                'estado' => $tipoVenta->maneja_cartera ? 'pendiente_pago' : ($validatedData['estado'] ?? 'finalizada'),
                 'metodo_pago' => $validatedData['metodo_pago'] ?? ($tipoVenta->maneja_cartera ? 'credito' : 'efectivo'),
             ];
 
@@ -61,8 +71,8 @@ class VentaService
             // 4. Procesamiento de Ítems (Detalles y Kárdex)
             foreach ($calculos['items'] as $itemCalculado) {
 
-                // Creación del Detalle de Venta (se mantiene la lógica)
-                $detalle = DetalleVenta::create([
+                // Creación del Detalle de Venta
+                DetalleVenta::create([
                     'venta_id' => $venta->id,
                     'producto_id' => $itemCalculado['producto_id'],
                     'cantidad' => $itemCalculado['cantidad'],
@@ -91,7 +101,7 @@ class VentaService
             }
 
             // 5. Gestión de Movimiento Financiero (Solo si es venta de contado/tarjeta/transferencia)
-            if (!$tipoVenta->maneja_cartera) {
+            if (!$tipoVenta->maneja_cartera && $venta->estado === 'finalizada') {
                 // Registrar el ingreso total de la venta en el libro de caja
                 $this->movimientoFinancieroService->registrarMovimiento(
                     monto: $venta->total,
@@ -105,13 +115,13 @@ class VentaService
                 );
             }
 
-            // 6. Gestión de Cartera (Cuentas por Cobrar)
+            // Gestión de Cartera (Cuentas por Cobrar)
             if ($tipoVenta->maneja_cartera) {
                 if (!$venta->cliente_id) {
                     throw new Exception('Una venta a crédito/separe requiere un cliente.');
                 }
 
-                //  Determinar la fecha de vencimiento
+                // Determinar la fecha de vencimiento
                 $diasPlazo = $this->determinarPlazoCredito($calculos['items']);
 
                 CuentaPorCobrar::create([
@@ -120,7 +130,7 @@ class VentaService
                     'monto_original' => $venta->total,
                     'monto_pendiente' => $venta->total,
                     'estado' => 'Pendiente',
-                    'fecha_vencimiento' => now()->addDays($diasPlazo), //  Plazo Dinámico
+                    'fecha_vencimiento' => now()->addDays($diasPlazo),
                 ]);
 
                 $venta->estado = 'pendiente_pago';
@@ -161,14 +171,16 @@ class VentaService
      * Consulta precios y calcula el subtotal, IVA y total de la venta.
      *
      * @param  array  $items  Array de productos y cantidades.
-     * @param  float  $descuentoGlobal  Descuento a aplicar al total.
+     * @param  float  $descuentoGlobalMonto  Descuento a aplicar al total.
+     * @param  float  $ivaPorcentajeInput  Porcentaje de IVA a aplicar (e.g., 19.0). Si es 0, no se calcula.
+     * @return array
+     * @throws Exception
      */
-    private function calcularTotales(array $items, float $descuentoGlobalMonto): array
+    private function calcularTotales(array $items, float $descuentoGlobalMonto, float $ivaPorcentajeInput): array
     {
-        $subtotalVenta = 0;
-        $descuentoTotalAcumulado = 0;
-        $ivaMontoTotal = 0;
-        $ivaPorcentajeBase = 0.19; // 19%
+        $subtotalVenta = 0.00;
+        $descuentoTotalAcumulado = 0.00;
+        $ivaPorcentajeDB = $ivaPorcentajeInput / 100.0; // Convertir a factor (e.g., 19 -> 0.19)
         $itemsCalculados = [];
 
         $productoIds = collect($items)->pluck('producto_id')->all();
@@ -187,44 +199,61 @@ class VentaService
             $subtotalBrutoItem = $precioUnitario * $cantidad;
             $subtotalNetoItem = $subtotalBrutoItem - $descuentoLineaMonto;
 
-            $ivaMontoItem = $subtotalNetoItem * $ivaPorcentajeBase;
+            // VALIDACIÓN: El descuento de línea no puede superar el subtotal bruto del ítem
+            if ($descuentoLineaMonto > $subtotalBrutoItem) {
+                throw new Exception("El descuento de línea ({$descuentoLineaMonto}) para el producto {$producto->nombre} no puede ser mayor que su subtotal bruto ({$subtotalBrutoItem}).");
+            }
 
             $subtotalVenta += $subtotalNetoItem;
             $descuentoTotalAcumulado += $descuentoLineaMonto;
-            $ivaMontoTotal += $ivaMontoItem;
 
+            // Datos que se guardan a nivel de detalle
             $itemsCalculados[] = [
                 'producto_id' => $item['producto_id'],
                 'cantidad' => $cantidad,
                 'precio_unitario' => $precioUnitario,
-                'subtotal' => $subtotalNetoItem,
+                'subtotal' => $subtotalNetoItem, // Subtotal neto por ítem
 
                 // Datos Históricos
                 'nombre_producto' => $producto->nombre,
                 'codigo_barra' => $producto->codigo_barra,
                 'precio_costo' => $producto->precio_compra,
                 'descuento_monto' => $descuentoLineaMonto,
-                'iva_porcentaje' => $ivaPorcentajeBase * 100,
-                'iva_monto' => $ivaMontoItem,
+
+                // El IVA por ítem se calculará globalmente después del descuento total
+                'iva_porcentaje' => 0.0, // Se inicializa a cero para el detalle
+                'iva_monto' => 0.00,
             ];
         }
 
-        // Aplicación del descuento global (sobre el Subtotal Neto Acumulado)
+        // --- Cálculos a Nivel de Venta ---
+
+        // VALIDACIÓN: El descuento global no puede superar el subtotal acumulado
+        if ($descuentoGlobalMonto > $subtotalVenta) {
+            throw new Exception("El descuento global ({$descuentoGlobalMonto}) no puede ser mayor que el subtotal neto de los ítems ({$subtotalVenta}).");
+        }
+
         $subtotalNetoGlobal = $subtotalVenta - $descuentoGlobalMonto;
-        $ivaMontoFinal = $subtotalNetoGlobal * $ivaPorcentajeBase;
+        $descuentoTotalAcumulado += $descuentoGlobalMonto;
+
+        $ivaMontoFinal = 0.00;
+        $ivaPorcentajeFinal = 0.0;
+
+        // LÓGICA DE IVA CONDICIONAL: Solo calcular si el porcentaje es > 0
+        if ($ivaPorcentajeInput > 0) {
+            $ivaMontoFinal = $subtotalNetoGlobal * $ivaPorcentajeDB;
+            $ivaPorcentajeFinal = $ivaPorcentajeInput;
+        }
 
         $totalFinal = $subtotalNetoGlobal + $ivaMontoFinal;
 
-        // El descuento total de la venta es la suma de descuentos de línea + descuento global.
-        $descuentoTotalAcumulado += $descuentoGlobalMonto;
-
         return [
-            'subtotal' => $subtotalVenta, // Subtotal neto de ítems (base para el IVA)
+            'subtotal' => $subtotalVenta, // Subtotal neto de ítems antes del descuento global
             'descuento_total' => $descuentoTotalAcumulado,
-            'iva_porcentaje' => $ivaPorcentajeBase * 100,
+            'iva_porcentaje' => $ivaPorcentajeFinal,
             'iva_monto' => $ivaMontoFinal,
             'total' => $totalFinal,
-            'items' => $itemsCalculados,
+            'items' => $itemsCalculados, // Ítems sin IVA, se aplica el IVA en la cabecera
         ];
     }
 }
