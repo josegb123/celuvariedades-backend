@@ -21,8 +21,8 @@ class UpdateProveedorRequest extends FormRequest
      */
     public function rules(): array
     {
-        // Obtenemos el ID del proveedor desde la ruta
-        $proveedorId = $this->route('proveedore')->id;
+        $proveedorId = $this->route('proveedor');
+
 
         return [
             'nombre_comercial' => [

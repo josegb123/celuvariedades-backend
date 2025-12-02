@@ -24,9 +24,7 @@ class ProveedorResource extends JsonResource
             'direccion' => $this->direccion,
             'ciudad' => $this->ciudad,
             'notas' => $this->notas,
-            'activo' => (bool)$this->activo,
-            'fechaRegistro' => $this->created_at->format('Y-m-d H:i:s'),
-            // Opcional: Relaciones (si se cargan)
+            'activo' => (bool) $this->activo,
             'productosSuministrados' => ProductoResource::collection($this->whenLoaded('productos')),
         ];
     }

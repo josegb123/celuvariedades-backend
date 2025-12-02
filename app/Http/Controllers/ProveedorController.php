@@ -92,10 +92,11 @@ class ProveedorController extends Controller
     public function update(UpdateProveedorRequest $request, Proveedor $proveedor): ProveedorResource|JsonResponse
     {
         try {
+
             $proveedor->update($request->validated());
 
             // Retorna el recurso individual formateado
-            return new ProveedorResource($proveedor);
+            return (new ProveedorResource($proveedor))->response();
 
         } catch (Exception $e) {
             return response()->json([
@@ -111,8 +112,10 @@ class ProveedorController extends Controller
      * @param Proveedor $proveedor
      * @return JsonResponse
      */
-    public function destroy(Proveedor $proveedor): JsonResponse
+    public function destroy(int $id): JsonResponse
     {
+
+        $proveedor = Proveedor::find($id);
         try {
             // Lógica de seguridad: Recomendado si hay relaciones importantes
             if ($proveedor->productos()->exists()) {

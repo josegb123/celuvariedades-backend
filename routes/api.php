@@ -6,6 +6,7 @@ use App\Http\Controllers\CarteraController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\CuentaPorCobrarController;
+use App\Http\Controllers\EstadisticasController;
 use App\Http\Controllers\FacturaController;
 use App\Http\Controllers\MovimientoFinancieroController;
 use App\Http\Controllers\ProveedorController;
@@ -46,11 +47,28 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/usuarios', UserController::class);
     Route::put('/usuarios/{id}/restore', [UserController::class, 'restore']);
     Route::post('/productos/{producto}', [ProductoController::class, 'update']);
-    Route::apiResource('/proveedores', ProveedorController::class);
-
+    Route::apiResource('proveedor', ProveedorController::class);
 
     Route::get('/cuentas-por-cobrar', [CuentaPorCobrarController::class, 'index']);
     Route::get('/cuentas-por-cobrar/{id}', [CuentaPorCobrarController::class, 'show']);
     Route::post('/abonos', [AbonoController::class, 'store']);
 
+    // Estadísticas
+
+
+
+    Route::prefix('estadisticas')->group(function () {
+        // Métricas Clave
+        Route::get('/ticket-promedio', [EstadisticasController::class, 'getTicketPromedio']);
+        Route::get('/historial-ganancias', [EstadisticasController::class, 'historialGanancias']);
+        Route::get('/productos-bajo-stock', [EstadisticasController::class, 'productosBajoStock']);
+
+        // Rankings
+        Route::get('/top-clientes', [EstadisticasController::class, 'TopClientes']);
+        Route::get('/top-productos', [EstadisticasController::class, 'TopProductos']);
+
+        // Series de Tiempo
+        Route::get('/ventas-por-periodo', [EstadisticasController::class, 'getVentasPorPeriodo']);
+        Route::get('/estadisticas/historial-ventas', [EstadisticasController::class, 'historialGanancias']);
+    });
 });

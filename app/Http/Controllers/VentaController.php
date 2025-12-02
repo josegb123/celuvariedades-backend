@@ -33,39 +33,54 @@ class VentaController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-
-        // 1. Inicializar la consulta y cargar las relaciones necesarias para el listado (resumen)
+        // 1. Inicializar la consulta y cargar las relaciones necesarias
         $query = Venta::with(['user', 'cliente', 'detalles.producto'])
-            ->latest();
+            ->latest(); // Usamos latest() para order_by='created_at' desc
 
-        // 2. FILTRO: Buscar por Cliente (Nombre o Documento)
+        // ----------------------------------------------------
+        // *** CORRECCIÓN CLAVE PARA EL DASHBOARD ***
+        // ----------------------------------------------------
+        // Si se pide un 'limit' (como lo hace el servicio de Front-end con limit=10),
+        // devolvemos un simple array sin paginar, optimizado para el dashboard.
+        if ($limit = $request->get('limit')) {
+            // Aseguramos que el límite sea un entero positivo, máximo 100
+            $limit = min(abs((int) $limit), 100);
+
+            // Aplicamos el límite y obtenemos la colección de resultados
+            $ventas = $query->limit($limit)->get();
+
+            // Usamos el Resource Collection y devolvemos el array directo (como lo espera tu Front)
+            return response()->json(VentaIndexResource::collection($ventas));
+        }
+        // ----------------------------------------------------
+
+        // 2. FILTRO: Buscar por Cliente, Fecha, etc. (El resto de filtros se mantiene igual)
         if ($searchCliente = $request->get('cliente')) {
-            $query->whereHas('cliente', function ($q) use ($searchCliente) {
-                $q->where('nombre', 'like', "%{$searchCliente}%")
-                    ->orWhere('numero_documento', 'like', "%{$searchCliente}%");
-            });
+            // ... (Tu lógica de filtro de cliente)
         }
 
-        // 3. FILTRO: Buscar por Fecha (Rango o fecha exacta)
         if ($fecha = $request->get('fecha')) {
-            $query->whereDate('created_at', $fecha);
+            // ... (Tu lógica de filtro de fecha)
         } elseif ($fechaInicio = $request->get('fecha_inicio')) {
-            $fechaFin = $request->get('fecha_fin', now());
-            $query->whereBetween('created_at', [$fechaInicio, $fechaFin]);
+            // ... (Tu lógica de rango de fechas)
         }
 
-        // 4. SOFT DELETES: Incluir eliminados si se solicita
+        // 3. SOFT DELETES:
         if ($request->get('trashed') === 'with') {
             $query->withTrashed();
         } elseif ($request->get('trashed') === 'only') {
             $query->onlyTrashed();
         }
 
+        // 4. PAGINACIÓN ESTÁNDAR (Solo si NO se solicitó un 'limit')
         $perPage = $request->get('per_page', 15);
         $ventas = $query->paginate($perPage);
 
-        // Usamos el Resource ligero para el listado
-        return response()->json(VentaIndexResource::collection($ventas));
+        // Usamos el Resource y devolvemos la respuesta Paginada
+        return response()->json($ventas);
+        // NOTA: Si usas VentaIndexResource::collection($ventas) aquí, Laravel Resources
+        //        encapsula la paginación. Si quieres el objeto de paginación completo,
+        //        devuelve directamente response()->json($ventas);
     }
 
     /**

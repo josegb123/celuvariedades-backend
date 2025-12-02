@@ -34,9 +34,15 @@ class ProductoController extends Controller
             $q->where('categoria_id', $request->input('categoria_id'));
         });
 
+
+        $perPage = $request->input('per_page', 18);
+
+        // 💡 Aplicar paginación con el límite dinámico
+        $productos = $query->paginate($perPage);
+
         $productos = $query->paginate(10);
 
-        return response()->json(ProductoResource::collection($productos));
+        return response()->json(ProductoResource::collection($productos)->response()->getData(true));
     }
 
     // -------------------------------------------------------------------
