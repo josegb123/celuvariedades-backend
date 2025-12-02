@@ -149,27 +149,45 @@ class EstadisticasController extends Controller
         try {
             // 2. Ejecutar la consulta de agregación
             $ventasPorPeriodo = Venta::query()
-                // Filtro para excluir ventas no válidas
                 ->where('estado', 'finalizada')
-
                 ->select(
-                    // Creación de la columna de tiempo agrupada
                     DB::raw("DATE_FORMAT(created_at, '{$dateFormat}') as periodo_fecha"),
-                    // Suma de los totales (ingresos brutos)
                     DB::raw('SUM(total) as ventas_totales')
                 )
                 ->groupBy('periodo_fecha')
                 ->orderBy('periodo_fecha')
                 ->get();
 
-            // 3. Devolver la respuesta
+            // 3. Calcular el beneficio por periodo
+            $beneficioPorPeriodo = DetalleVenta::query()
+                ->join('ventas', 'detalle_ventas.venta_id', '=', 'ventas.id')
+                ->where('ventas.estado', 'finalizada')
+                ->select(
+                    DB::raw("DATE_FORMAT(ventas.created_at, '{$dateFormat}') as periodo_fecha"),
+                    DB::raw('SUM((precio_unitario - precio_costo) * cantidad) as beneficio')
+                )
+                ->groupBy('periodo_fecha')
+                ->orderBy('periodo_fecha')
+                ->get()
+                ->keyBy('periodo_fecha');
+
+            // 4. Unir ventas y beneficio por periodo
+            $resultados = $ventasPorPeriodo->map(function ($item) use ($beneficioPorPeriodo) {
+                $beneficio = $beneficioPorPeriodo[$item->periodo_fecha]->beneficio ?? 0;
+                return [
+                    'periodo_fecha' => $item->periodo_fecha,
+                    'ventas_totales' => (float) $item->ventas_totales,
+                    'beneficio' => (float) $beneficio,
+                ];
+            });
+
+            // 5. Devolver la respuesta
             return response()->json([
                 'periodo' => $periodo,
-                'data' => $ventasPorPeriodo,
+                'data' => $resultados,
             ]);
 
         } catch (\Exception $e) {
-            // Manejo de errores
             return response()->json([
                 'error' => 'No se pudo obtener las Ventas por Período.',
                 'message' => $e->getMessage()
