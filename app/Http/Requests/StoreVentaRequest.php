@@ -34,6 +34,16 @@ class StoreVentaRequest extends FormRequest
             // DescuentoTotal: Se recibe para ser aplicado en el servicio.
             'descuento_total' => 'nullable|numeric|min:0',
 
+            // ID de la Caja Diaria: Opcional, pero si se envía, debe existir.
+            // --- REGLA CRÍTICA DE CAJA ---
+            'caja_diaria_id' => [
+                'nullable',
+                // Es REQUERIDO si el método de pago es 'efectivo'
+                Rule::requiredIf($this->input('metodo_pago') === 'efectivo'),
+                // Debe existir en la tabla de cajas diarias
+                'exists:cajas_diarias,id',
+            ],
+
             // Método de Pago: Requerido si el estado es 'finalizada' (o se asume que será crédito).
             'metodo_pago' => [
                 'nullable',

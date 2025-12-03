@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AbonoController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CajaDiariaController;
 use App\Http\Controllers\CarteraController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ClienteController;
@@ -70,5 +71,16 @@ Route::middleware('auth:sanctum')->group(function () {
         // Series de Tiempo
         Route::get('/ventas-por-periodo', [EstadisticasController::class, 'getVentasPorPeriodo']);
         Route::get('/estadisticas/historial-ventas', [EstadisticasController::class, 'historialGanancias']);
+
+        Route::prefix('cajas')->controller(CajaDiariaController::class)->group(function () {
+            // [GET] /api/cajas/activa: Obtiene la sesión abierta actual del usuario
+            Route::get('/activa', 'getCajaActiva');
+
+            // [POST] /api/cajas/apertura: Abre una nueva sesión de caja
+            Route::post('/apertura', 'abrirCaja');
+
+            // [POST] /api/cajas/{cajaDiaria}/cierre: Cierra la sesión específica por ID            
+            Route::post('/{cajaDiaria}/cierre', 'cerrarCaja');
+        });
     });
 });

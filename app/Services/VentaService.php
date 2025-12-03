@@ -9,20 +9,27 @@ use App\Models\TipoVenta;
 use App\Models\Venta;
 use Exception;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class VentaService
 {
     private InventarioService $inventarioService;
     private MovimientoFinancieroService $movimientoFinancieroService;
+    private CajaDiariaService $cajaDiariaService;
 
     /**
      * @param InventarioService $inventarioService
      * @param MovimientoFinancieroService $movimientoFinancieroService
+     * @param CajaDiariaService $cajaDiariaService
      */
-    public function __construct(InventarioService $inventarioService, MovimientoFinancieroService $movimientoFinancieroService)
-    {
+    public function __construct(
+        InventarioService $inventarioService,
+        MovimientoFinancieroService $movimientoFinancieroService,
+        CajaDiariaService $cajaDiariaService // Inyección de CajaDiariaService
+    ) {
         $this->inventarioService = $inventarioService;
         $this->movimientoFinancieroService = $movimientoFinancieroService;
+        $this->cajaDiariaService = $cajaDiariaService; // Asignado
     }
 
     /**
@@ -48,10 +55,37 @@ class VentaService
             $calculos = $this->calcularTotales($items, $descuentoGlobalMonto, $ivaPorcentajeInput);
 
             // El estado por defecto se establece a partir del tipo de venta
+            $metodoPago = $validatedData['metodo_pago'] ?? ($tipoVenta->maneja_cartera ? 'credito' : 'efectivo');
+
+            // --- Lógica de Control de Caja (Punto Crítico) ---
+            $cajaDiariaId = $validatedData['caja_diaria_id'] ?? null;
+
+            if ($metodoPago === 'efectivo') {
+                if (empty($cajaDiariaId)) {
+                    throw new Exception("Debe especificar el ID de la caja activa para registrar una venta en efectivo.");
+                }
+
+                // Verificar que la caja exista y esté abierta para poder registrar la venta
+                // Se usa Auth::id() para verificar que la caja activa pertenezca al usuario que registra la venta.
+                $caja = $this->cajaDiariaService->obtenerCajaActiva(Auth::id());
+
+                // Aquí se verifica que el ID enviado por el frontend coincida con la caja ACTIVA del usuario.
+                if (!$caja || $caja->id != $cajaDiariaId) {
+                    throw new Exception("La caja con ID {$cajaDiariaId} no está activa o no pertenece al usuario.");
+                }
+            } else {
+                // Si no es efectivo (tarjeta, transferencia, crédito), la venta no afecta el arqueo de efectivo.
+                $cajaDiariaId = null;
+            }
+            // --------------------------------------------------
+
             $datosVenta = [
                 'user_id' => $validatedData['user_id'],
                 'cliente_id' => $validatedData['cliente_id'] ?? null,
                 'tipo_venta_id' => $tipoVenta->id,
+
+                // Asignar el ID de la caja
+                'caja_diaria_id' => $cajaDiariaId,
 
                 // Totales calculados
                 'subtotal' => $calculos['subtotal'],
@@ -62,7 +96,7 @@ class VentaService
 
                 // Estado y método de pago
                 'estado' => $tipoVenta->maneja_cartera ? 'pendiente_pago' : ($validatedData['estado'] ?? 'finalizada'),
-                'metodo_pago' => $validatedData['metodo_pago'] ?? ($tipoVenta->maneja_cartera ? 'credito' : 'efectivo'),
+                'metodo_pago' => $metodoPago, // Usamos la variable local ya definida
             ];
 
             // 3. Creación de la Cabecera de la Venta

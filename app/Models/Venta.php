@@ -99,4 +99,9 @@ class Venta extends Model
             }
         );
     }
+
+    public function cajaDiaria(): BelongsTo
+    {
+        return $this->belongsTo(CajaDiaria::class, 'caja_diaria_id');
+    }
 }
