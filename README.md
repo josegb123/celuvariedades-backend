@@ -374,3 +374,50 @@ Este proyecto sigue la arquitectura típica de una aplicación Laravel, que se b
 Se observa la implementación de una capa de servicios (`app/Services`), lo que indica una buena práctica de separación de responsabilidades. Los controladores delegan la lógica de negocio más compleja a estas clases de servicio, manteniéndolos delgados y enfocados en la manipulación de la petición y la respuesta.
 
 **Ejemplo:** `app/Services/VentaService.php` manejaría la lógica de creación, actualización y eliminación de ventas, incluyendo la interacción con el inventario, movimientos financieros, etc.
+
+---
+
+## 5. Pendientes y Mejoras (TODO Backend)
+
+Esta sección lista áreas clave para fortalecer el backend en términos de seguridad, robustez y mantenimiento.
+
+### Seguridad
+
+*   **Implementar Rate Limiting**: Proteger contra ataques de fuerza bruta y abuso de la API en endpoints críticos (ej., login, registro).
+*   **Validación de Entradas Rigurosa**: Asegurar que todas las entradas de usuario sean validadas exhaustivamente en el servidor, además de la validación a nivel de framework. Considerar la sanitización de datos.
+*   **Gestión de Sesiones/Tokens Segura**: Revisar la configuración de Laravel Sanctum, incluyendo tiempos de expiración de tokens y estrategias de refresco si aplica.
+*   **Protección contra Vulnerabilidades Comunes**: Revisar y aplicar configuraciones para prevenir XSS, CSRF (aunque menos crítico en APIs puras, importante si hay interacción con sesiones o webviews), SQL Injection (Laravel Eloquent ayuda, pero las consultas raw deben ser cuidadosas).
+*   **Registro de Auditoría**: Implementar un sistema para registrar acciones sensibles de los usuarios y administradores.
+*   **Control de Acceso Basado en Roles (RBAC)**: Si no está completamente implementado, definir roles y permisos granularmente para los usuarios del sistema.
+
+### Manejo de Errores y Excepciones
+
+*   **Manejo Global de Excepciones**: Asegurar que todas las excepciones no capturadas se gestionen de forma elegante y devuelvan respuestas JSON consistentes y amigables para el cliente.
+*   **Códigos de Estado HTTP Semánticos**: Utilizar los códigos de estado HTTP apropiados para cada respuesta (200 OK, 201 Created, 204 No Content, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 422 Unprocessable Entity, 500 Internal Server Error, etc.).
+*   **Mensajes de Error Claros y Detallados (en Desarrollo)**: Proporcionar mensajes de error útiles en entornos de desarrollo, pero genéricos y no reveladores de información sensible en producción.
+
+### Normalización y Consistencia
+
+*   **Estandarización de Respuestas API**: Definir un formato estándar para todas las respuestas de la API (ej., siempre devolver un objeto con `data`, `message`, `status`).
+*   **Paginación, Filtrado y Ordenamiento**: Implementar mecanismos consistentes y eficientes para paginar, filtrar y ordenar los resultados en las colecciones grandes.
+*   **Versionado de la API**: Considerar el versionado de la API (ej., `/api/v1/clientes`) para permitir futuras evoluciones sin romper clientes existentes.
+
+### Pruebas
+
+*   **Pruebas Unitarias**: Escribir pruebas unitarias exhaustivas para toda la lógica de negocio en los servicios, modelos y componentes críticos.
+*   **Pruebas de Integración**: Crear pruebas que verifiquen la interacción entre diferentes componentes (ej., controladores y servicios, servicios y base de datos).
+*   **Pruebas de Endpoints (Feature Tests)**: Asegurar que todos los endpoints de la API funcionen como se espera, incluyendo casos de éxito, errores de validación y autenticación/autorización.
+*   **Automatización de Pruebas**: Integrar las pruebas en un pipeline de CI/CD para que se ejecuten automáticamente en cada cambio de código.
+
+### Rendimiento y Escalabilidad
+
+*   **Optimización de Consultas a Base de Datos**: Identificar y optimizar consultas lentas, usar índices apropiados, eager loading, etc.
+*   **Cacheo**: Implementar estrategias de caché para datos frecuentemente accedidos que no cambian a menudo.
+*   **Manejo de Tareas en Segundo Plano**: Utilizar colas para tareas que consumen mucho tiempo (ej., envío de correos, procesamiento de imágenes) para no bloquear las peticiones HTTP.
+
+### Mantenimiento y Calidad de Código
+
+*   **Refactorización Continua**: Mantener el código limpio, legible y modular.
+*   **Revisión de Código**: Establecer un proceso de revisión de código entre pares para asegurar la calidad y detectar posibles problemas.
+*   **Actualización de Dependencias**: Mantener las dependencias del proyecto actualizadas para beneficiarse de mejoras de rendimiento y seguridad.
+*   **Documentación de Código**: Asegurar que el código complejo o las decisiones de diseño importantes estén bien documentadas internamente.
