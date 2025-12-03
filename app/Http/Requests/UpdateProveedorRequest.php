@@ -12,7 +12,7 @@ class UpdateProveedorRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        // Asume que solo usuarios autenticados pueden actualizar proveedores
+        //solo usuarios autenticados pueden actualizar proveedores
         return auth()->check();
     }
 

@@ -94,7 +94,7 @@ class CajaDiariaService
         // 1. Sumar las ventas en efectivo (asumiendo que 'efectivo' es el método de pago)
         $ventasEfectivo = $caja->ventas()
             ->where('metodo_pago', 'efectivo')
-            ->sum(DB::raw('total_a_pagar')); // Asegúrate de que esta columna sea el total de la venta
+            ->sum(DB::raw('total')); // Asegúrate de que esta columna sea el total de la venta
 
         // 2. Restar Egresos / Sumar Ingresos manuales (Opcional, si tienes tabla de movimientos)
         // Por ahora, solo usamos el fondo inicial y las ventas.

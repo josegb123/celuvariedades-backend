@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreMovimientoFinancieroRequest;
 use App\Http\Resources\MovimientoFinancieroResource;
 use App\Services\MovimientoFinancieroService;
-use App\Models\MovimientoFinanciero; // 🚨 Importar el modelo
+use App\Models\MovimientoFinanciero;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Exception;

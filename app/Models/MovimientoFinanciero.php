@@ -13,16 +13,17 @@ class MovimientoFinanciero extends Model
     protected $fillable = [
         'tipo_movimiento_id',
         'monto',
-        'tipo', // 🚨 Agregado
+        'tipo', // Agregado
         'descripcion',
-        'metodo_pago', // 🚨 Agregado
+        'metodo_pago', // Agregado
         'venta_id',
         'user_id',
-        'referencia_tabla', // 🚨 Agregado
-        'referencia_id', // 🚨 Agregado
+        'referencia_tabla', // Agregado
+        'referencia_id', // Agregado
+        'caja_diaria_id', // Agregado
     ];
 
-    // 🚨 El campo 'tipo_movimiento_financieros' estaba mal escrito en la definición original
+    // El campo 'tipo_movimiento_financieros' estaba mal escrito en la definición original
 
     public function tipoMovimiento()
     {
@@ -32,5 +33,10 @@ class MovimientoFinanciero extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function caja()
+    {
+        return $this->belongsTo(CajaDiaria::class, 'caja_diaria_id');
     }
 }

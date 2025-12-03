@@ -3,7 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule; // ⬅️ IMPORTAR LA CLASE RULE
+use Illuminate\Validation\Rule;
 
 class UpdateProductoRequest extends FormRequest
 {
@@ -29,7 +29,7 @@ class UpdateProductoRequest extends FormRequest
             'categoria_id' => ['sometimes', 'required', 'exists:categorias,id'],
             'user_id' => ['sometimes', 'required', 'exists:users,id'],
 
-            // ⬅️ CORRECCIÓN CLAVE: Usar la clase Rule::unique
+
             'codigo_barra' => [
                 'nullable',
                 'string',

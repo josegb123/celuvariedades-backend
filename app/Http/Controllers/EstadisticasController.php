@@ -48,8 +48,7 @@ class EstadisticasController extends Controller
     }
 
     /**
-     * Calcula el Top 10 de clientes por monto total de ventas.
-     * Asume que el modelo Venta tiene la relación 'cliente' y una columna 'total'.
+     * Calcula el Top 10 de clientes por monto total de ventas.     
      */
     public function topClientes(): JsonResponse
     {
@@ -116,8 +115,7 @@ class EstadisticasController extends Controller
 
     /**
      * Lista los productos cuyo stock está por debajo de un umbral (threshold).
-     * Recibe el parámetro opcional 'umbral' (por defecto 5).
-     * Asume que el modelo Producto tiene una columna 'stock'.
+     * Recibe el parámetro opcional 'umbral' (por defecto 5).     
      */
     public function productosBajoStock(Request $request): JsonResponse
     {

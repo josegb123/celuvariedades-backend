@@ -50,7 +50,14 @@ class CajaDiaria extends Model
      */
     public function ventas(): HasMany
     {
-        // Se asume la existencia de la columna 'caja_diaria_id' en la tabla 'ventas'
         return $this->hasMany(Venta::class, 'caja_diaria_id');
+    }
+
+    /**
+     * Relación con todos los movimientos financieros asociados a esta caja diaria.
+     */
+    public function movimientosFinancieros(): HasMany
+    {
+        return $this->hasMany(MovimientoFinanciero::class, 'caja_diaria_id');
     }
 }

@@ -37,9 +37,7 @@ class VentaController extends Controller
         $query = Venta::with(['user', 'cliente', 'detalles.producto'])
             ->latest(); // Usamos latest() para order_by='created_at' desc
 
-        // ----------------------------------------------------
-        // *** CORRECCIÓN CLAVE PARA EL DASHBOARD ***
-        // ----------------------------------------------------
+
         // Si se pide un 'limit' (como lo hace el servicio de Front-end con limit=10),
         // devolvemos un simple array sin paginar, optimizado para el dashboard.
         if ($limit = $request->get('limit')) {

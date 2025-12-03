@@ -22,9 +22,10 @@ class MovimientoFinancieroService
         string $descripcion,
         string $referenciaTabla,
         int $referenciaId,
-        ?int $ventaId = null
+        ?int $ventaId = null,
+        int $cajaDiariaId = 1
     ): MovimientoFinanciero {
-        return DB::transaction(function () use ($monto, $tipoMovimientoNombre, $metodoPago, $userId, $descripcion, $referenciaTabla, $referenciaId, $ventaId) {
+        return DB::transaction(function () use ($monto, $tipoMovimientoNombre, $metodoPago, $userId, $descripcion, $referenciaTabla, $referenciaId, $ventaId, $cajaDiariaId) {
 
             $tipoMovimiento = TipoMovimientoFinanciero::where('nombre', $tipoMovimientoNombre)->first();
 
@@ -42,6 +43,7 @@ class MovimientoFinancieroService
                 'metodo_pago' => $metodoPago,
                 'referencia_tabla' => $referenciaTabla,
                 'referencia_id' => $referenciaId,
+                'caja_diaria_id' => $cajaDiariaId,
             ]);
 
             return $movimiento;

@@ -54,10 +54,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/cuentas-por-cobrar/{id}', [CuentaPorCobrarController::class, 'show']);
     Route::post('/abonos', [AbonoController::class, 'store']);
 
+    // Rutas de Caja Diaria
+    Route::prefix('cajas')->controller(CajaDiariaController::class)->group(function () {
+        // [GET] /api/cajas/activa: Obtiene la sesión abierta actual del usuario
+        Route::get('/activa', 'getCajaActiva');
+
+        // [POST] /api/cajas/apertura: Abre una nueva sesión de caja
+        Route::post('/apertura', 'abrirCaja');
+
+        // [POST] /api/cajas/{cajaDiaria}/cierre: Cierra la sesión específica por ID            
+        Route::post('/{cajaDiaria}/cierre', 'cerrarCaja');
+    });
+
     // Estadísticas
-
-
-
     Route::prefix('estadisticas')->group(function () {
         // Métricas Clave
         Route::get('/ticket-promedio', [EstadisticasController::class, 'getTicketPromedio']);
@@ -72,15 +81,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/ventas-por-periodo', [EstadisticasController::class, 'getVentasPorPeriodo']);
         Route::get('/estadisticas/historial-ventas', [EstadisticasController::class, 'historialGanancias']);
 
-        Route::prefix('cajas')->controller(CajaDiariaController::class)->group(function () {
-            // [GET] /api/cajas/activa: Obtiene la sesión abierta actual del usuario
-            Route::get('/activa', 'getCajaActiva');
 
-            // [POST] /api/cajas/apertura: Abre una nueva sesión de caja
-            Route::post('/apertura', 'abrirCaja');
-
-            // [POST] /api/cajas/{cajaDiaria}/cierre: Cierra la sesión específica por ID            
-            Route::post('/{cajaDiaria}/cierre', 'cerrarCaja');
-        });
     });
 });

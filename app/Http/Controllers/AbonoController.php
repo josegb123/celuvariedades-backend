@@ -27,7 +27,7 @@ class AbonoController extends Controller
     try {
       $validatedData = $request->validated();
 
-      // 🚨 Aseguramos el user_id
+      // Aseguramos el user_id
       $validatedData['user_id'] = auth()->id();
 
       $abono = $this->abonoService->procesarAbono($validatedData);
