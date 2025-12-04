@@ -83,7 +83,7 @@ class ProductoController extends Controller
      */
     public function show(Producto $producto): JsonResponse
     {
-        return response()->json(new ProductoResource($producto->load(['categoria', 'user'])));
+        return response()->json(new ProductoResource($producto->load(['categoria', 'user', 'proveedores'])));
     }
 
     // -------------------------------------------------------------------

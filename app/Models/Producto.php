@@ -64,4 +64,11 @@ class Producto extends Model
             ->withPivot(['precio_costo', 'referencia_proveedor'])
             ->withTimestamps(); // Si tu tabla pivote tiene created_at/updated_at
     }
+
+    // Define si el producto tiene stock bajo
+    public function getIsBajoStockAttribute(): bool
+    {
+        // No se toma en cuenta el stock reservado para esta evaluación, ya que precisamente está en reserva
+        return $this->stock_actual <= $this->stock_minimo;
+    }
 }
