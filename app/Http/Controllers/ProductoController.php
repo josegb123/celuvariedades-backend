@@ -231,7 +231,7 @@ class ProductoController extends Controller
         });
 
         // 4. Aplicar paginación
-        $perPage = $request->input('per_page', 15);
+        $perPage = $request->input('per_page', 99);
         $productos = $query->paginate($perPage);
 
         if ($productos->isEmpty()) {
