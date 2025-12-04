@@ -207,4 +207,41 @@ class ProductoController extends Controller
         // Si la imagen_url fue una URL externa (ej. https://otra-web.com/img.jpg), 
         // no pasa la comprobación y no intentamos borrarla.
     }
+
+    /**
+     * Muestra una lista paginada de productos que están en bajo stock.
+     * La lógica es: stock_actual <= stock_minimo.
+     */
+    public function getBajoStock(Request $request): JsonResponse
+    {
+        // 1. Inicializar la consulta con las relaciones necesarias
+        $query = Producto::with(['categoria', 'user', 'proveedores']);
+
+        // 2. Aplicar la condición de bajo stock
+        // Utilizamos whereRaw para filtrar donde la columna 'stock_actual' es menor o igual a 'stock_minimo'
+        $query->whereRaw('stock_actual <= stock_minimo');
+
+        // 3. Opcional: Filtro adicional por término de búsqueda (nombre/código)
+        $query->when($request->filled('search'), function ($q) use ($request) {
+            $searchTerm = $request->input('search');
+            $q->where(function ($subQuery) use ($searchTerm) {
+                $subQuery->where('nombre', 'like', "%{$searchTerm}%")
+                    ->orWhere('codigo_barra', 'like', "%{$searchTerm}%");
+            });
+        });
+
+        // 4. Aplicar paginación
+        $perPage = $request->input('per_page', 15);
+        $productos = $query->paginate($perPage);
+
+        if ($productos->isEmpty()) {
+            return response()->json([
+                'message' => 'No hay productos en bajo stock.',
+                'data' => [],
+            ]);
+        }
+        // 5. Devolver la respuesta usando el Resource. El Resource se encargará de añadir el Accessor
+        // 'is_bajo_stock' a cada producto en la respuesta.
+        return response()->json(ProductoResource::collection($productos)->response()->getData(true));
+    }
 }

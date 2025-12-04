@@ -44,6 +44,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('/tipo-movimientos-financieros', TipoMovimientoFinancieroController::class);
     Route::apiResource('/categorias', CategoriaController::class);
     Route::apiResource('/facturas', FacturaController::class);
+    Route::get('/productos/bajo-stock', [ProductoController::class, 'getBajoStock']);
     Route::apiResource('/productos', ProductoController::class);
     Route::apiResource('/usuarios', UserController::class);
     Route::put('/usuarios/{id}/restore', [UserController::class, 'restore']);
@@ -51,7 +52,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('proveedor', ProveedorController::class);
 
     Route::get('/cuentas-por-cobrar', [CuentaPorCobrarController::class, 'index']);
-    Route::get('/cuentas-por-cobrar/{id}', [CuentaPorCobrarController::class, 'show']);
+    Route::get('/cuentas-por-cobrabr/{id}', [CuentaPorCobrarController::class, 'show']);
     Route::post('/abonos', [AbonoController::class, 'store']);
 
     // Rutas de Caja Diaria
