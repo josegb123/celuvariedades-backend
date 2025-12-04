@@ -52,7 +52,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('proveedor', ProveedorController::class);
 
     Route::get('/cuentas-por-cobrar', [CuentaPorCobrarController::class, 'index']);
-    Route::get('/cuentas-por-cobrabr/{id}', [CuentaPorCobrarController::class, 'show']);
+    Route::get('/cuentas-por-cobrar/{id}', [CuentaPorCobrarController::class, 'show']);
     Route::post('/abonos', [AbonoController::class, 'store']);
 
     // Rutas de Caja Diaria

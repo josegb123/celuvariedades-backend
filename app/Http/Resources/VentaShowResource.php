@@ -15,6 +15,7 @@ class VentaShowResource extends VentaIndexResource
     // 1. Obtiene todos los campos del IndexResource
     $data = parent::toArray($request);
 
+    $data['caja_diaria_id'] = $this->caja_diaria_id;
     // 2. Añade los campos detallados/financieros
     $data['totales_financieros'] = [
       'subtotal' => (float) $this->subtotal,
