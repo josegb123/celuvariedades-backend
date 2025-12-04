@@ -9,6 +9,7 @@ use App\Http\Resources\VentaIndexResource;
 use App\Http\Resources\VentaShowResource;
 use App\Models\Venta;
 use App\Services\VentaService;
+use Illuminate\Support\Facades\DB;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -37,7 +38,6 @@ class VentaController extends Controller
         $query = Venta::with(['user', 'cliente', 'detalles.producto'])
             ->latest(); // Usamos latest() para order_by='created_at' desc
 
-
         // Si se pide un 'limit' (como lo hace el servicio de Front-end con limit=10),
         // devolvemos un simple array sin paginar, optimizado para el dashboard.
         if ($limit = $request->get('limit')) {
@@ -52,16 +52,50 @@ class VentaController extends Controller
         }
         // ----------------------------------------------------
 
-        // 2. FILTRO: Buscar por Cliente, Fecha, etc. (El resto de filtros se mantiene igual)
-        if ($searchCliente = $request->get('cliente')) {
-            // ... (Tu lógica de filtro de cliente)
+        // 2. FILTROS PRINCIPALES (Usados en la vista de Administración)
+
+        // 2.1. FILTRO: Búsqueda global por Cliente o Vendedor (usado como 'search' en el Front)
+        if ($search = $request->get('search')) {
+            $query->where(function ($q) use ($search) {
+                // Buscar por nombre de cliente
+                $q->whereHas('cliente', function ($qCliente) use ($search) {
+                    $qCliente->where('nombre', 'like', "%{$search}%");
+                })
+                    // O buscar por nombre de usuario/vendedor
+                    ->orWhereHas('user', function ($qUser) use ($search) {
+                        $qUser->where('name', 'like', "%{$search}%");
+                    });
+            });
         }
 
-        if ($fecha = $request->get('fecha')) {
-            // ... (Tu lógica de filtro de fecha)
-        } elseif ($fechaInicio = $request->get('fecha_inicio')) {
-            // ... (Tu lógica de rango de fechas)
+        // 2.2. FILTRO: Por Estado (finalizada, pendiente_pago, cancelada)
+        if ($estado = $request->get('estado')) {
+            $query->where('estado', $estado);
         }
+
+        // 2.3. FILTRO: Por Método de Pago
+        if ($metodoPago = $request->get('metodo_pago')) {
+            $query->where('metodo_pago', $metodoPago);
+        }
+
+        // 2.4. FILTRO: Por Cliente específico (si se usa el campo 'cliente' en el query)
+        if ($cliente = $request->get('cliente_id')) { // Usar ID es más robusto que el nombre
+            $query->where('cliente_id', $cliente);
+        }
+
+        // 2.5. FILTRO: Por Fecha exacta (si se usa el campo 'fecha')
+        if ($fecha = $request->get('fecha')) {
+            $query->whereDate('created_at', $fecha);
+        }
+
+        // 2.6. FILTRO: Por Rango de Fechas (Si se usa 'fecha_inicio' y 'fecha_fin'
+        //              en lugar de la lógica simplificada de $fechaInicio)
+        elseif ($fechaInicio = $request->get('fecha_inicio')) {
+            $fechaFin = $request->get('fecha_fin', now()->toDateString()); // Por defecto, hasta hoy
+
+            $query->whereBetween(DB::raw('DATE(created_at)'), [$fechaInicio, $fechaFin]);
+        }
+
 
         // 3. SOFT DELETES:
         if ($request->get('trashed') === 'with') {
@@ -72,13 +106,16 @@ class VentaController extends Controller
 
         // 4. PAGINACIÓN ESTÁNDAR (Solo si NO se solicitó un 'limit')
         $perPage = $request->get('per_page', 15);
+
+        // Ejecutamos la paginación        
         $ventas = $query->paginate($perPage);
 
-        // Usamos el Resource y devolvemos la respuesta Paginada
-        return response()->json($ventas);
-        // NOTA: Si usas VentaIndexResource::collection($ventas) aquí, Laravel Resources
-        //        encapsula la paginación. Si quieres el objeto de paginación completo,
-        //        devuelve directamente response()->json($ventas);
+        // Opcional: Aplicar el Resource Collection al objeto paginado si necesitas modificar los datos en la paginación.
+        // Si no necesitas modificar los campos de la paginación (ej. current_page, total, etc.):
+        return VentaIndexResource::collection($ventas)->response();
+
+        // Si necesitas que el objeto retornado sea el raw Laravel Pagination object (como lo espera tu Front):
+        // return response()->json($ventas); 
     }
 
     /**

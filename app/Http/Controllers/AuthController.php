@@ -20,11 +20,13 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         // Verificar si el usuario existe y si la contraseña es correcta
-        if (! $user || ! Hash::check($request->password, $user->password)) {
+        if (!$user || !Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
                 'credenciales' => ['Las credenciales son incorrectas.'],
             ]);
         }
+        // Revocar cualquier token existente para este dispositivo
+        $user->tokens()->where('name', $request->device_name)->delete();
 
         // Generar un token único para este dispositivo
         $token = $user->createToken($request->device_name)->plainTextToken;
