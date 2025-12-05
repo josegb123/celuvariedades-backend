@@ -34,6 +34,8 @@ class StoreProductoRequest extends FormRequest
             'stock_actual' => ['sometimes', 'required', 'integer', 'min:0'],
             'stock_reservado' => ['sometimes', 'required', 'integer', 'min:0'],
             'stock_minimo' => ['sometimes', 'required', 'integer', 'min:0'],
+            'proveedores' => 'nullable|array',
+            'proveedores.*' => 'exists:proveedores,id',
         ];
     }
 }

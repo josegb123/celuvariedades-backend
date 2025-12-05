@@ -73,7 +73,17 @@ class ProductoController extends Controller
 
         $producto = Producto::create($data);
 
-        return response()->json(new ProductoResource($producto->load(['categoria', 'user'])), 201);
+        // 3. Guardar la Relación Pivot (Muchos a Muchos)
+        if (!empty($request->has('proveedores'))) {
+
+            // adjunta los IDs proporcionados.
+            foreach ($request->input('proveedores') as $proveedorId) {
+                $producto->proveedores()->attach($proveedorId);
+            }
+
+        }
+
+        return response()->json(new ProductoResource($producto->load(['categoria', 'user', 'proveedores'])), 201);
     }
 
     // -------------------------------------------------------------------
