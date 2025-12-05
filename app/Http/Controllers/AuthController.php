@@ -77,4 +77,9 @@ class AuthController extends Controller
             'message' => 'Cierre de sesión exitoso. Token revocado.'
         ], 200);
     }
+
+    public function user(Request $request)
+    {
+        return response()->json($request->user());
+    }
 }

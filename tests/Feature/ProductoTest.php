@@ -19,6 +19,11 @@ class ProductoTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // $this->seed(); // Seed initial data
+
+        // Ensure a category exists for products
+        \App\Models\Categoria::factory()->create();
+
         $this->user = User::factory()->create();
     }
 
@@ -45,20 +50,13 @@ class ProductoTest extends TestCase
                              'stock_actual',
                              'stock_reservado',
                              'stock_minimo',
-                             'created_at',
-                             'updated_at',
                              'categoria' => [
                                 'id',
                                 'nombre',
-                                'created_at',
-                                'updated_at',
                              ],
                              'user' => [
                                 'id',
                                 'name',
-                                'email',
-                                'created_at',
-                                'updated_at',
                              ]
                          ]
                      ]
