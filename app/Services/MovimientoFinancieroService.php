@@ -10,9 +10,19 @@ use Illuminate\Support\Facades\DB;
 class MovimientoFinancieroService
 {
     /**
-     * Registra una entrada o salida de dinero en el libro de caja.
+     * Registra una entrada o salida de dinero en el libro de caja de forma atómica.
      *
-     * @param int|null $ventaId ID de la venta asociada (null para gastos varios).
+     * @param float $monto Monto del movimiento.
+     * @param string $tipoMovimientoNombre Nombre del tipo de movimiento (ej: 'Venta de Productos').
+     * @param string $metodoPago Método de pago asociado (ej: 'efectivo', 'tarjeta').
+     * @param int $userId ID del usuario que registra el movimiento.
+     * @param string $descripcion Descripción del movimiento.
+     * @param string $referenciaTabla Nombre de la tabla de origen (ej: 'ventas', 'cuentas_por_cobrar').
+     * @param int|null $referenciaId ID del registro en la tabla de origen.
+     * @param int|null $ventaId ID de la venta asociada (si aplica).
+     * @param int|null $cajaDiariaId ID de la caja diaria activa (si el movimiento implica flujo de dinero).
+     * @return MovimientoFinanciero
+     * @throws Exception
      */
     public function registrarMovimiento(
         float $monto,
@@ -21,9 +31,9 @@ class MovimientoFinancieroService
         int $userId,
         string $descripcion,
         string $referenciaTabla,
-        int $referenciaId,
+        ?int $referenciaId,
         ?int $ventaId = null,
-        int $cajaDiariaId = 1
+        ?int $cajaDiariaId = null
     ): MovimientoFinanciero {
         return DB::transaction(function () use ($monto, $tipoMovimientoNombre, $metodoPago, $userId, $descripcion, $referenciaTabla, $referenciaId, $ventaId, $cajaDiariaId) {
 

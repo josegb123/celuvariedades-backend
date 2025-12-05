@@ -33,7 +33,7 @@ class StoreVentaRequest extends FormRequest
 
             // DescuentoTotal: Se recibe para ser aplicado en el servicio.
             'descuento_total' => 'nullable|numeric|min:0',
-
+            'abono_inicial' => 'nullable|numeric|min:0',
             // ID de la Caja Diaria: Opcional, pero si se envía, debe existir.
             // --- REGLA CRÍTICA DE CAJA ---
             'caja_diaria_id' => [

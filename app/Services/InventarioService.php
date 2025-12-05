@@ -49,34 +49,46 @@ class InventarioService
                 // Esto ayuda a atrapar errores en la configuración de los Seeders.
                 throw new Exception("Tipo de movimiento de inventario '{$tipoMovimientoNombre}' no válido.");
             }
-
             $esSalida = $tipoMovimiento->tipo_operacion === 'SALIDA';
 
             // 2. Lógica para determinar si afecta 'stock_actual' o 'stock_reservado'
-            // Solo 'Venta' afecta stock_actual. 'Transferencia Salida' (usado para Separe) afecta stock_reservado.
-            $afectaReserva = ($tipoMovimientoNombre === 'Transferencia Salida');
-            $columnaStock = $afectaReserva ? 'stock_reservado' : 'stock_actual';
+            // Mantener lógica simple, ya que 'Transferencia Salida' es el caso de reserva
+            $esPlanSepare = ($tipoMovimientoNombre === 'Transferencia Salida');
+
+            // La columna que se usa para la VALIDACIÓN de disponibilidad.
+            $columnaValidacion = $esPlanSepare ? 'stock_actual' : 'stock_actual'; // Para Plan Separe, se valida contra el stock_actual antes de moverlo
 
             // 3. Validación de Stock
             if ($esSalida) {
-                if ($producto->{$columnaStock} < $cantidad) {
+                if ($producto->{$columnaValidacion} < $cantidad) {
+                    // Usamos la excepción customizada con datos relevantes
                     throw new StockInsuficienteException(
                         productoId: $productoId,
                         cantidadSolicitada: $cantidad,
-                        cantidadDisponible: $producto->{$columnaStock},
-                        message: "Stock insuficiente para el producto {$producto->nombre} en {$columnaStock}."
+                        cantidadDisponible: $producto->{$columnaValidacion},
+                        message: "Stock insuficiente para el producto {$producto->nombre} en {$columnaValidacion}."
                     );
                 }
             }
 
             // 4. Actualización del Stock (bloqueado con lockForUpdate)
-            if ($esSalida) {
-                $producto->decrement($columnaStock, $cantidad);
+            if ($esPlanSepare) {
+                // CASO PLAN SEPARE: MOVIMIENTO DE STOCK ACTUAL A RESERVADO
+                // 1. Reducir stock_actual
+                $producto->decrement('stock_actual', $cantidad);
+                // 2. Aumentar stock_reservado
+                $producto->increment('stock_reservado', $cantidad);
+
+            } elseif ($esSalida) {
+                // CASO VENTA (Contado/Crédito): SALIDA de stock_actual
+                $producto->decrement('stock_actual', $cantidad);
             } else {
-                $producto->increment($columnaStock, $cantidad);
+                // CASO ENTRADA (Compra/Ajuste Positivo): ENTRADA a stock_actual
+                $producto->increment('stock_actual', $cantidad);
             }
 
-            $producto->save();
+            // 5. Recargar y Guardar Timestamps            
+            $producto = $producto->fresh();
 
             // 5. Registro en el Kárdex (MovimientoInventario)
             $this->movimientoModel->create([

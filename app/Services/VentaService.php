@@ -35,7 +35,7 @@ class VentaService
     /**
      * Procesa una venta completa, actualiza inventario, registra movimiento financiero y genera cartera si es necesario.
      *
-     * @param  array  $validatedData  Datos validados (incluye user_id, iva_porcentaje y caja_diaria_id).
+     * @param  array  $validatedData  Datos validados (incluye user_id, iva_porcentaje, caja_diaria_id, abono_inicial).
      * @return Venta
      * @throws Exception
      */
@@ -58,22 +58,27 @@ class VentaService
             // --- Lógica de Control de Caja ---
             $cajaDiariaId = $validatedData['caja_diaria_id'] ?? null;
 
-            if ($metodoPago === 'efectivo') {
+            if ($metodoPago === 'efectivo' || in_array($metodoPago, ['tarjeta', 'transferencia'])) {
+                // Para cualquier pago de contado (incluyendo abono inicial de Plan Separe/Crédito)
                 if (empty($cajaDiariaId)) {
-                    throw new Exception("Debe especificar el ID de la caja activa para registrar una venta en efectivo.");
+                    // Solo se requiere la caja si hubo un movimiento de dinero (contado o abono)
+                    if ($tipoVenta->maneja_cartera && ($validatedData['abono_inicial'] ?? 0.00) > 0) {
+                        throw new Exception("Debe especificar el ID de la caja activa para registrar el abono inicial.");
+                    } else if (!$tipoVenta->maneja_cartera) {
+                        throw new Exception("Debe especificar el ID de la caja activa para registrar una venta en efectivo/tarjeta/transferencia.");
+                    }
                 }
 
-                // Verificar que la caja exista y esté abierta para el usuario actual.
-                $caja = $this->cajaDiariaService->obtenerCajaActiva(Auth::id());
+                if (!empty($cajaDiariaId)) {
+                    // Verificar que la caja exista y esté abierta para el usuario actual.
+                    $caja = $this->cajaDiariaService->obtenerCajaActiva(Auth::id());
 
-                if (!$caja || $caja->id != $cajaDiariaId) {
-                    throw new Exception("La caja con ID {$cajaDiariaId} no está activa o no pertenece al usuario.");
+                    if (!$caja || $caja->id != $cajaDiariaId) {
+                        throw new Exception("La caja con ID {$cajaDiariaId} no está activa o no pertenece al usuario.");
+                    }
                 }
-            } elseif ($tipoVenta->maneja_cartera) {
-                // Si es crédito, no necesitamos caja (el pago será posterior).
-                $cajaDiariaId = null;
             }
-            // Para Tarjeta/Transferencia, el $cajaDiariaId se usa si viene, para registrar el movimiento de ingreso no-efectivo.
+
 
             // 3. Preparación de Datos de la Venta
             $datosVenta = [
@@ -115,6 +120,7 @@ class VentaService
                 ]);
 
                 // Actualización del Inventario (Delegado)
+                // Usar 'Plan Separe' o 'Crédito' (si aplica) para el tipo de movimiento de salida
                 $tipoMovimientoNombre = $tipoVenta->nombre === 'Plan Separe' ? 'Transferencia Salida' : 'Venta';
 
                 $this->inventarioService->ajustarStock(
@@ -144,26 +150,58 @@ class VentaService
                 );
             }
 
-            // 7. Gestión de Cartera (Cuentas por Cobrar)
+            // 7. Gestión de Cartera (Cuentas por Cobrar) - Lógica de abono y plazo integrada
             if ($tipoVenta->maneja_cartera) {
                 if (!$venta->cliente_id) {
                     throw new Exception('Una venta a crédito/separe requiere un cliente.');
                 }
 
-                // Determinar la fecha de vencimiento
-                $diasPlazo = $this->determinarPlazoCredito($calculos['items']);
+                $abonoInicial = (float) ($validatedData['abono_inicial'] ?? 0.00);
+                $montoTotalVenta = (float) $venta->total;
 
+                // 1. Validación de abono
+                if ($abonoInicial > $montoTotalVenta) {
+                    throw new Exception("El abono inicial ({$abonoInicial}) no puede ser mayor que el total de la venta ({$montoTotalVenta}).");
+                }
+
+                // 2. Cálculo del Monto Pendiente Final
+                $montoPendiente = $montoTotalVenta - $abonoInicial;
+
+                // 3. Registrar el Movimiento Financiero del Abono (si existe)
+                if ($abonoInicial > 0) {
+                    $this->movimientoFinancieroService->registrarMovimiento(
+                        monto: $abonoInicial,
+                        tipoMovimientoNombre: 'Abono Inicial Venta a Cartera',
+                        descripcion: "Abono inicial para la venta ID {$venta->id}",
+                        metodoPago: $venta->metodo_pago, // Usar el método de pago de la venta
+                        ventaId: $venta->id,
+                        userId: $venta->user_id,
+                        referenciaTabla: 'cuentas_por_cobrar',
+                        referenciaId: null,
+                        cajaDiariaId: $cajaDiariaId
+                    );
+                }
+
+                // 4. Determinar fecha de vencimiento y estado
+                $diasPlazo = $this->determinarPlazoCredito($calculos['items'], $tipoVenta->nombre); // Se pasa el tipo de venta
+                $estadoCuenta = $montoPendiente <= 0 ? 'Pagada' : 'Pendiente';
+                $estadoVenta = $montoPendiente <= 0 ? 'finalizada' : 'pendiente_pago';
+
+                // 5. Creación de la ÚNICA Cuenta por Cobrar
                 CuentaPorCobrar::create([
                     'venta_id' => $venta->id,
                     'cliente_id' => $venta->cliente_id,
-                    'monto_original' => $venta->total,
-                    'monto_pendiente' => $venta->total,
-                    'estado' => 'Pendiente',
+                    'monto_original' => $montoTotalVenta,
+                    'monto_pendiente' => $montoPendiente,
+                    'estado' => $estadoCuenta,
                     'fecha_vencimiento' => now()->addDays($diasPlazo),
                 ]);
 
-                $venta->estado = 'pendiente_pago';
-                $venta->save();
+                // 6. Actualizar el estado de la Venta (si cambió)
+                if ($venta->estado !== $estadoVenta) {
+                    $venta->estado = $estadoVenta;
+                    $venta->save();
+                }
             }
 
             return $venta->load('detalles.producto', 'cliente', 'user', 'cuentaPorCobrar');
@@ -171,14 +209,20 @@ class VentaService
     }
 
     /**
-     * Determina el plazo máximo de crédito (en días) basado en los productos vendidos.
+     * Determina el plazo máximo de crédito (en días) basado en el tipo de venta y productos vendidos.
      * @param array $itemsCalculados
+     * @param string $tipoVentaNombre
      * @return int
      */
-    private function determinarPlazoCredito(array $itemsCalculados): int
+    private function determinarPlazoCredito(array $itemsCalculados, string $tipoVentaNombre): int
     {
-        $plazoDefault = 30;
-        $plazoCelulares = 180;
+        // Regla Plan Separe: 6 meses (180 días)
+        if ($tipoVentaNombre === 'Plan Separe') {
+            return 180;
+        }
+
+        $plazoDefault = 30; // Plazo predeterminado para Crédito
+        $plazoCelulares = 180; // Plazo especial para Celulares a Crédito
 
         $productoIds = collect($itemsCalculados)->pluck('producto_id')->all();
 
@@ -191,6 +235,7 @@ class VentaService
             return optional($producto->categoria)->nombre === 'Celulares';
         });
 
+        // Si es crédito normal y tiene celulares, se aplica el plazo largo
         return $esCelular ? $plazoCelulares : $plazoDefault;
     }
 

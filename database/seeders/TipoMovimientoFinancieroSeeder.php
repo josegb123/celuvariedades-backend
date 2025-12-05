@@ -31,6 +31,11 @@ class TipoMovimientoFinancieroSeeder extends Seeder
             'tipo' => 'Ingreso',
         ]);
 
+        TipoMovimientoFinanciero::create([
+            'nombre' => 'Abono inicial para la venta',
+            'descripcion' => 'Abono inicial para una venta a crédito o plan separe.',
+            'tipo' => 'Ingreso',
+        ]);
 
         // --- 2. EGRESOS ---
         TipoMovimientoFinanciero::create([

@@ -22,6 +22,7 @@ class Venta extends Model
         'iva_porcentaje',
         'iva_monto',
         'total',
+        'abono_inicial',
         'estado',
         'metodo_pago',
     ];
