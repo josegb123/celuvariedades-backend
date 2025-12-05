@@ -18,7 +18,7 @@ class ProductoController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Producto::with(['categoria', 'user']);
+        $query = Producto::with(['categoria', 'user', 'proveedores']);
 
         // Filtro por término de búsqueda (nombre o código de barra)
         $query->when($request->filled('search'), function ($q) use ($request) {
