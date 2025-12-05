@@ -11,7 +11,7 @@ class StoreClienteRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return auth()->check();
     }
 
     /**

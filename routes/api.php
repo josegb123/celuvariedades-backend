@@ -1,5 +1,3 @@
-<?php
-
 use App\Http\Controllers\AbonoController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CajaDiariaController;
@@ -15,56 +13,57 @@ use App\Http\Controllers\TipoMovimientoFinancieroController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VentaController;
 use App\Http\Controllers\ProductoController;
-use Illuminate\Http\Request; // Cambiado de Illuminate\Http\Client\Request
 use Illuminate\Support\Facades\Route;
 
 // 1. RUTAS PÚBLICAS (No requieren token)
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
-// Ruta de Logout (requiere token para saber qué token revocar)
-Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);
-
-// Ruta de Prueba para obtener el usuario autenticado
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
-});
-
-// 2. RUTAS PROTEGIDAS (Requieren Token)
+// 2. RUTAS PROTEGIDAS (Requieren Token Sanctum)
 Route::middleware('auth:sanctum')->group(function () {
-    // Aquí se pueden agregar rutas protegidas adicionales
+
+    // Autenticación
+    Route::post('/logout', [AuthController::class, 'logout']);
+
+    // Gestión de Usuarios
+    Route::apiResource('/usuarios', UserController::class);
+    Route::put('/usuarios/{id}/restore', [UserController::class, 'restore']);
+
+    // Gestión de Clientes
     Route::apiResource('/clientes', ClienteController::class);
-    Route::apiResource('/ventas', VentaController::class);
+    // Rutas para Cartera (asociadas a clientes)
     Route::apiResource('/carteras', CarteraController::class)->only([
         'store',
         'show',
         'update',
     ]);
-    Route::apiResource('/movimientos-financieros', MovimientoFinancieroController::class);
-    Route::apiResource('/tipo-movimientos-financieros', TipoMovimientoFinancieroController::class);
-    Route::apiResource('/categorias', CategoriaController::class);
-    Route::apiResource('/facturas', FacturaController::class);
-    Route::get('/productos/bajo-stock', [ProductoController::class, 'getBajoStock']);
-    Route::apiResource('/productos', ProductoController::class);
-    Route::apiResource('/usuarios', UserController::class);
-    Route::put('/usuarios/{id}/restore', [UserController::class, 'restore']);
-    Route::post('/productos/{producto}', [ProductoController::class, 'update']);
-    Route::apiResource('proveedor', ProveedorController::class);
-
+    // Rutas para Cuentas por Cobrar
     Route::get('/cuentas-por-cobrar', [CuentaPorCobrarController::class, 'index']);
     Route::get('/cuentas-por-cobrar/{id}', [CuentaPorCobrarController::class, 'show']);
+    // Rutas para Abonos
     Route::post('/abonos', [AbonoController::class, 'store']);
+
+    // Gestión de Productos y Categorías
+    Route::apiResource('/categorias', CategoriaController::class);
+    Route::get('/productos/bajo-stock', [ProductoController::class, 'getBajoStock']);
+    Route::apiResource('/productos', ProductoController::class);
+
+    // Gestión de Proveedores
+    Route::apiResource('proveedor', ProveedorController::class);
+
+    // Gestión de Ventas y Facturación
+    Route::apiResource('/ventas', VentaController::class);
+    Route::apiResource('/facturas', FacturaController::class);
+
+    // Gestión Financiera
+    Route::apiResource('/movimientos-financieros', MovimientoFinancieroController::class);
+    Route::apiResource('/tipo-movimientos-financieros', TipoMovimientoFinancieroController::class);
 
     // Rutas de Caja Diaria
     Route::prefix('cajas')->controller(CajaDiariaController::class)->group(function () {
-        // [GET] /api/cajas/activa: Obtiene la sesión abierta actual del usuario
-        Route::get('/activa', 'getCajaActiva');
-
-        // [POST] /api/cajas/apertura: Abre una nueva sesión de caja
-        Route::post('/apertura', 'abrirCaja');
-
-        // [POST] /api/cajas/{cajaDiaria}/cierre: Cierra la sesión específica por ID            
-        Route::post('/{cajaDiaria}/cierre', 'cerrarCaja');
+        Route::get('/activa', 'getCajaActiva'); // [GET] /api/cajas/activa: Obtiene la sesión abierta actual del usuario
+        Route::post('/apertura', 'abrirCaja'); // [POST] /api/cajas/apertura: Abre una nueva sesión de caja
+        Route::post('/{cajaDiaria}/cierre', 'cerrarCaja'); // [POST] /api/cajas/{cajaDiaria}/cierre: Cierra la sesión específica por ID
     });
 
     // Estadísticas
@@ -80,8 +79,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Series de Tiempo
         Route::get('/ventas-por-periodo', [EstadisticasController::class, 'getVentasPorPeriodo']);
-        Route::get('/estadisticas/historial-ventas', [EstadisticasController::class, 'historialGanancias']);
-
-
+        Route::get('/historial-ventas', [EstadisticasController::class, 'historialGanancias']); // Ya se manejaba arriba. Duplicado.
     });
 });
+

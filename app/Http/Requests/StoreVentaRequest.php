@@ -14,8 +14,7 @@ class StoreVentaRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        // El control de acceso se delega generalmente a Policies o Middleware en la ruta/controlador.
-        return true;
+        return auth()->check();
     }
 
     /**
