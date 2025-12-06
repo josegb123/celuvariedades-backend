@@ -4,33 +4,46 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Devolucion extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
+    protected $table = 'devoluciones';
 
     protected $fillable = [
         'venta_id',
-        'user_id',
-        'monto_devuelto',
-        'razon',
-        'estado',
+        'producto_id',
+        'cliente_id',
+        'id_unico_producto',
+        'cantidad',
+        'motivo',
+        'costo_unitario',
+        'notas',
+        'estado_gestion',
     ];
 
-    public function venta()
+    /**
+     * Get the venta that owns the Devolucion.
+     */
+    public function venta(): BelongsTo
     {
         return $this->belongsTo(Venta::class);
     }
 
-    public function user()
+    /**
+     * Get the producto associated with the Devolucion.
+     */
+    public function producto(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Producto::class);
     }
 
-    // Relación Cabecera-Detalle
-    public function detalles()
+    /**
+     * Get the cliente associated with the Devolucion.
+     */
+    public function cliente(): BelongsTo
     {
-        return $this->hasMany(DetalleDevolucion::class);
+        return $this->belongsTo(Cliente::class);
     }
 }

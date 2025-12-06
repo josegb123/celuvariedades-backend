@@ -16,6 +16,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\VentaController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\PedidoProveedorController;
+use App\Http\Controllers\DevolucionController; // Import DevolucionController
 use Illuminate\Support\Facades\Route;
 
 // 1. RUTAS PÚBLICAS (No requieren token)
@@ -80,3 +81,11 @@ Route::prefix('estadisticas')->middleware('auth:sanctum')->group(function () {
     Route::get('/ventas-por-periodo', [EstadisticasController::class, 'getVentasPorPeriodo']);
     Route::get('/historial-ventas', [EstadisticasController::class, 'historialGanancias']);
 });
+
+// Gestión de Devoluciones
+Route::prefix('devoluciones')->middleware('auth:sanctum')->controller(DevolucionController::class)->group(function () {
+    Route::post('/', 'store'); // POST /api/devoluciones
+    Route::get('/pendientes', 'getPendientes'); // GET /api/devoluciones/pendientes
+    Route::put('/{id}/status', 'updateStatus'); // PUT /api/devoluciones/{id}/status
+});
+

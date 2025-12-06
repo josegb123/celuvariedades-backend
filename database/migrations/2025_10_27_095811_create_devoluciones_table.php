@@ -14,17 +14,20 @@ return new class extends Migration
         Schema::create('devoluciones', function (Blueprint $table) {
             $table->id();
 
-            // Relaciones
-            $table->foreignId('venta_id')->constrained('ventas')->onDelete('restrict'); // Devolución debe estar ligada a una Venta
-            $table->foreignId('user_id')->constrained('users')->onDelete('restrict'); // Usuario que procesó la devolución
+            // Claves Foráneas Obligatorias
+            $table->foreignId('venta_id')->constrained('ventas')->onDelete('cascade');
+            $table->foreignId('producto_id')->constrained('productos')->onDelete('cascade');
+            $table->foreignId('cliente_id')->constrained('clientes')->onDelete('cascade');
 
-            // Datos de la Devolución
-            $table->decimal('monto_devuelto', 10, 2);
-            $table->text('razon');
-            $table->string('estado', 50)->default('Procesada'); // Ej: Procesada, Pendiente Reembolso
+            // Campos de Registro
+            $table->string('id_unico_producto')->unique(); // Identificador único para la unidad física
+            $table->integer('cantidad')->default(1); // Cantidad siempre será 1 por unidad única
+            $table->string('motivo');
+            $table->decimal('costo_unitario', 10, 2);
+            $table->text('notas')->nullable();
+            $table->string('estado_gestion')->default('Pendiente'); // Ej: 'Pendiente', 'Contactado', 'Finalizada'
 
             $table->timestamps();
-            $table->softDeletes();
         });
     }
 
