@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use App\Models\CuentaPorCobrar;
-use App\Models\AbonoCartera; // ⚠️ Asumimos la existencia de este modelo
+use App\Models\AbonoCartera;
+use App\Models\DetalleVenta;
 use Exception;
 use Illuminate\Support\Facades\DB;
+use App\Models\Venta;
 
 class CuentaPorCobrarService
 {
@@ -27,8 +29,7 @@ class CuentaPorCobrarService
     int $userId,
     string $referenciaPago = ""
   ): AbonoCartera {
-    // La transacción de DB es local, pero AbonoService la encapsulará en una más grande.
-    // La dejamos para ser defensivos si se llama directamente.
+
     return DB::transaction(function () use ($cuentaPorCobrarId, $monto, $metodoPago, $userId, $referenciaPago) {
 
       // 1. Bloqueo de registro para evitar doble pago simultáneo
@@ -41,7 +42,6 @@ class CuentaPorCobrarService
       if ($monto <= 0) {
         throw new Exception("El monto del abono debe ser positivo.");
       }
-
       // 2. Determinar el monto real a aplicar
       $montoRealAbonado = min($monto, $cuenta->monto_pendiente);
       $nuevoSaldo = $cuenta->monto_pendiente - $montoRealAbonado;
@@ -60,6 +60,14 @@ class CuentaPorCobrarService
 
       if ($nuevoSaldo <= 0.00) {
         $cuenta->estado = 'Pagada';
+
+        if ($cuenta->venta_id) {
+          // Busca la venta por ID y actualiza su estado.          
+          Venta::where('id', $cuenta->venta_id)->update(['estado' => 'finalizada', 'updated_at' => now()]);
+
+          DetalleVenta::where('venta_id', $cuenta->venta_id)->update(['estado' => 'finalizada', 'updated_at' => now()]);
+        }
+
       }
 
       $cuenta->save();

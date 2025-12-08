@@ -21,7 +21,7 @@ class DetalleVenta extends Model
         'cantidad',
         'precio_unitario', // Precio Bruto por unidad (antes de descuento de línea)
         'subtotal',        // Cantidad * Precio Unitario (Neto de IVA, Bruto de descuento)
-
+        'estado',
         // --- Campos Históricos (CRÍTICO) ---
         'nombre_producto', // Almacenar el nombre en el momento de la venta
         'codigo_barra',    // Almacenar el código en el momento de la venta

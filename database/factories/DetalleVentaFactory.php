@@ -22,7 +22,7 @@ class DetalleVentaFactory extends Factory
         $precioUnitario = $producto->precio_venta;
         $descuentoMonto = fake()->boolean(20) ? fake()->randomFloat(2, 100, 500) : 0.00;
         $ivaPorcentaje = 19.00; // Asumir 19%
-
+        $estado = fake()->randomElement(['pendiente', 'finalizada']);
         // Cálculo del subtotal y del IVA para el detalle
         $subtotalBrutoLinea = $cantidad * $precioUnitario;
         $subtotalNetoLinea = $subtotalBrutoLinea - $descuentoMonto;
@@ -37,6 +37,7 @@ class DetalleVentaFactory extends Factory
             'cantidad' => $cantidad,
             'precio_unitario' => $precioUnitario,
             'subtotal' => $subtotalNetoLinea, // Subtotal de la línea (neto de descuento, sin IVA)
+            'estado' => $estado,
 
             // --- Campos Históricos (CRÍTICOS) ---
             'nombre_producto' => $producto->nombre,

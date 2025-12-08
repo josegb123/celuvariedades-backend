@@ -62,7 +62,6 @@ class StoreVentaRequest extends FormRequest
             // Validación de cada ítem anidado
             'items.*.producto_id' => 'required|integer|exists:productos,id',
             'items.*.cantidad' => 'required|numeric|min:0.01', // La cantidad puede ser decimal (ej. peso)
-
             // Permitimos descuentos por ítem, aunque se calcule en el servicio.
             'items.*.descuento' => 'nullable|numeric|min:0',
 

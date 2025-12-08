@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\AbonoCartera;
+use App\Models\CajaDiaria;
 use App\Models\CuentaPorCobrar;
 use Illuminate\Support\Facades\DB;
 use Exception;
@@ -56,7 +57,8 @@ class AbonoService
         descripcion: $descripcionMovimiento,
         referenciaTabla: 'abono_carteras',
         referenciaId: $abono->id,
-        ventaId: $cuenta->venta_id
+        ventaId: $cuenta->venta_id,
+        cajaDiariaId: $validatedData['caja_diaria_id'] ?? null
       );
 
       return $abono;

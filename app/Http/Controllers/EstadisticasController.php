@@ -5,12 +5,162 @@ namespace App\Http\Controllers;
 use App\Models\DetalleVenta;
 use App\Models\Producto;
 use App\Models\Venta;
+use App\Models\PedidoProveedor; // Added
+use App\Models\Cliente; // Added
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
+use Maatwebsite\Excel\Facades\Excel; // Added
+use App\Exports\VentasExport; // Added
 
 class EstadisticasController extends Controller
 {
+    /**
+     * Exporta las ventas agrupadas a un archivo Excel.
+     * @param Request $request
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse
+     */
+    public function exportarVentasExcel(Request $request)
+    {
+        $periodo = $request->input('periodo', 'month'); // Default to 'month'
+        return Excel::download(new VentasExport($periodo), 'ventas_agrupadas_' . $periodo . '.xlsx');
+    }
+
+    /**
+     * Identifica productos con pocas o ninguna venta en un período dado.
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function productosBajaRotacion(Request $request): JsonResponse
+    {
+        $periodDays = (int) $request->input('period_days', 90); // Default to 90 days
+        $startDate = now()->subDays($periodDays);
+
+        $ventasPorProducto = DetalleVenta::select('producto_id', DB::raw('SUM(cantidad) as total_vendido'))
+            ->join('ventas', 'detalle_ventas.venta_id', '=', 'ventas.id')
+            ->where('ventas.created_at', '>=', $startDate)
+            ->groupBy('producto_id')
+            ->pluck('total_vendido', 'producto_id');
+
+        $productosConBajaRotacion = Producto::whereNotIn('id', $ventasPorProducto->keys())
+            ->orWhereIn('id', $ventasPorProducto->filter(fn($cantidad) => $cantidad <= 5)->keys()) // Products with 0-5 sales
+            ->get(['id', 'nombre', 'stock_actual']);
+
+        // Enhance with last sale date if available
+        $resultados = $productosConBajaRotacion->map(function ($producto) use ($ventasPorProducto, $startDate) {
+            $unidadesVendidas = $ventasPorProducto->get($producto->id, 0);
+
+            $ultimaVenta = DetalleVenta::where('producto_id', $producto->id)
+                ->join('ventas', 'detalle_ventas.venta_id', '=', 'ventas.id')
+                ->where('ventas.created_at', '>=', $startDate)
+                ->latest('ventas.created_at')
+                ->first();
+
+            return [
+                'id' => $producto->id,
+                'nombre' => $producto->nombre,
+                'stock' => $producto->stock_actual,
+                'unidades_vendidas_en_periodo' => (int) $unidadesVendidas,
+                'ultima_venta' => $ultimaVenta ? $ultimaVenta->venta->created_at->toDateTimeString() : null,
+            ];
+        });
+
+        return response()->json([
+            'periodo_dias' => $periodDays,
+            'data' => $resultados,
+        ]);
+    }
+
+    /**
+     * Calcula el monto total gastado en pedidos a proveedores dentro de un rango de fechas.
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function valorPedidosProveedores(Request $request): JsonResponse
+    {
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+
+        if (!$startDate || !$endDate) {
+            return response()->json([
+                'error' => 'Fechas de inicio y fin son requeridas (start_date, end_date).'
+            ], 400);
+        }
+
+        $query = PedidoProveedor::query()
+            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+
+        $totalGastoProveedores = (float) $query->sum('total');
+
+        $detallesPorProveedor = $query->select('proveedor_id', DB::raw('SUM(total) as total_gastado'))
+            ->groupBy('proveedor_id')
+            ->with([
+                'proveedor' => function ($q) {
+                    $q->select('id', 'nombre');
+                }
+            ])
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'proveedor_id' => $item->proveedor_id,
+                    'nombre_proveedor' => $item->proveedor->nombre ?? 'Proveedor Desconocido',
+                    'total_gastado' => (float) $item->total_gastado,
+                ];
+            });
+
+        return response()->json([
+            'total_gasto_proveedores' => $totalGastoProveedores,
+            'periodo' => [
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+            ],
+            'detalles_por_proveedor' => $detallesPorProveedor,
+        ]);
+    }
+
+    /**
+     * Identifica los clientes que han realizado el mayor número de compras en un período determinado.
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function topClientesFrecuencia(Request $request): JsonResponse
+    {
+        $periodDays = (int) $request->input('period_days', 90); // Default to 90 days
+        $limit = (int) $request->input('limit', 10); // Default to top 10 clients
+        $startDate = now()->subDays($periodDays);
+
+        $topClientes = Venta::select(
+            'cliente_id',
+            DB::raw('COUNT(id) as numero_compras_en_periodo'),
+            DB::raw('MAX(created_at) as ultima_compra')
+        )
+            ->where('created_at', '>=', $startDate)
+            ->groupBy('cliente_id')
+            ->orderByDesc('numero_compras_en_periodo')
+            ->limit($limit)
+            ->with([
+                'cliente' => function ($q) {
+                    $q->select('id', 'nombre', 'email');
+                }
+            ])
+            ->get();
+
+        $resultados = $topClientes->map(function ($item) {
+            return [
+                'cliente_id' => $item->cliente_id,
+                'nombre_cliente' => $item->cliente->nombre ?? 'Cliente Desconocido',
+                'email_cliente' => $item->cliente->email ?? null,
+                'numero_compras_en_periodo' => (int) $item->numero_compras_en_periodo,
+                'ultima_compra' => $item->ultima_compra ? $item->ultima_compra->toDateTimeString() : null,
+            ];
+        });
+
+        return response()->json([
+            'periodo_dias' => $periodDays,
+            'limit' => $limit,
+            'data' => $resultados,
+        ]);
+    }
     /**
      * Calcula el Top 10 de productos más vendidos.
      */
@@ -218,7 +368,6 @@ class EstadisticasController extends Controller
             ], 500);
         }
     }
-
     public function historialGanancias(Request $request): JsonResponse
     {
         $periodo = $request->get('periodo', 'month');
@@ -232,16 +381,21 @@ class EstadisticasController extends Controller
             // 1. Unir la tabla de detalle con la tabla de ventas
             ->join('ventas', 'detalle_ventas.venta_id', '=', 'ventas.id')
 
+            // 2. Filtramos solo por ventas en estado 'finalizada'
+            ->where('ventas.estado', 'finalizada')
+
             ->select(
-                // 2. Usar el alias correcto: ventas.created_at
-                DB::raw("DATE_FORMAT(ventas.created_at, '{$dateFormat}') as periodo_fecha"),
-                // 3. Cálculo del margen (asumiendo que las columnas están en detalle_ventas)
-                DB::raw('SUM((precio_unitario - precio_costo) * cantidad) as beneficio_bruto')
+                DB::raw("DATE_FORMAT(ventas.updated_at, '{$dateFormat}') as periodo_fecha"),
+                DB::raw('SUM((detalle_ventas.precio_unitario - detalle_ventas.precio_costo) * detalle_ventas.cantidad) as beneficio_bruto')
             )
-            // Aplicar el filtro de rango de fechas (opcional)
-            // ->when($request->has('fecha_inicio'), function ($query) use ($request) {
-            //     $query->where('ventas.created_at', '>=', $request->fecha_inicio);
-            // })
+
+            // 3. Aplicar el filtro de rango de fechas
+            ->when($request->has(['fecha_inicio', 'fecha_fin']), function ($query) use ($request) {
+                $query->whereBetween('ventas.updated_at', [
+                    $request->fecha_inicio . ' 00:00:00',
+                    $request->fecha_fin . ' 23:59:59'
+                ]);
+            })
 
             ->groupBy('periodo_fecha')
             ->orderBy('periodo_fecha')

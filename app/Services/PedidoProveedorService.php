@@ -15,6 +15,9 @@ use App\Models\CajaDiaria;
 
 class PedidoProveedorService
 {
+    // Puedes definir una constante o cargarla de una configuración
+    const MARGEN_BENEFICIO = 0.30; // 30% de margen (ejemplo)
+
     public function receiveOrder(array $data): PedidoProveedor
     {
         DB::beginTransaction();
@@ -36,26 +39,47 @@ class PedidoProveedorService
             // 2. Procesar productos del pedido
             foreach ($data['productos'] as $productoData) {
                 $producto = Producto::findOrFail($productoData['producto_id']);
+                $nuevoCosto = $productoData['precio_compra'];
+                $nuevaCantidad = $productoData['cantidad'];
 
-                // Crear DetallePedidoProveedor
+                // Crear DetallePedidoProveedor (Registro Histórico)
                 DetallePedidoProveedor::create([
                     'pedido_proveedor_id' => $pedido->id,
                     'producto_id' => $producto->id,
-                    'cantidad' => $productoData['cantidad'],
-                    'precio_compra' => $productoData['precio_compra'],
-                    'subtotal' => $productoData['cantidad'] * $productoData['precio_compra'],
+                    'cantidad' => $nuevaCantidad,
+                    'precio_compra' => $nuevoCosto,
+                    'subtotal' => $nuevaCantidad * $nuevoCosto,
                 ]);
 
-                // Actualizar stock del Producto
-                $producto->increment('stock_actual', $productoData['cantidad']);
+                // 🎯 INICIO DE LA LÓGICA DE ACTUALIZACIÓN DE COSTO Y STOCK 🎯
+
+                // 2.1. Actualizar stock del Producto (usando incremento, como ya lo tenías)
+                $producto->increment('stock_actual', $nuevaCantidad);
+
+                // 2.2. Actualizar precio_compra (Último Costo)
+                $producto->precio_compra = $nuevoCosto;
+
+                // 2.3. Calcular y actualizar precio_venta (Costo + Margen)
+
+                // Si el margen está en el modelo Producto, usa:
+                // $margen = $producto->margen_beneficio ?? self::MARGEN_BENEFICIO;
+
+                // Usando la constante (margen fijo):
+                $margen = self::MARGEN_BENEFICIO;
+                $producto->precio_venta = $nuevoCosto * (1 + $margen);
+
+                // 2.4. Guardar los cambios de precio y stock en la base de datos
+                $producto->save();
+
+                // 🎯 FIN DE LA LÓGICA DE ACTUALIZACIÓN DE COSTO Y STOCK 🎯
 
                 // Registrar MovimientoInventario
                 MovimientoInventario::create([
                     'producto_id' => $producto->id,
                     'user_id' => $data['user_id'],
                     'tipo_movimiento_id' => $tipoMovimientoInventarioCompra->id,
-                    'cantidad' => $productoData['cantidad'],
-                    'costo_unitario' => $productoData['precio_compra'],
+                    'cantidad' => $nuevaCantidad,
+                    'costo_unitario' => $nuevoCosto,
                     'referencia_tabla' => 'pedido_proveedores',
                     'referencia_id' => $pedido->id,
                 ]);
@@ -64,8 +88,8 @@ class PedidoProveedorService
             // 3. Registrar MovimientoFinanciero (Egreso)
             // Obtener la caja diaria activa del usuario que recibe el pedido
             $cajaDiaria = CajaDiaria::where('user_id', $data['user_id'])
-                                    ->where('estado', 'abierta')
-                                    ->first();
+                ->where('estado', 'abierta')
+                ->first();
 
             if (!$cajaDiaria) {
                 throw new \Exception('No se encontró una caja diaria abierta para el usuario que recibe el pedido.');
@@ -89,8 +113,7 @@ class PedidoProveedorService
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al recibir pedido: ' . $e->getMessage(), ['exception' => $e]);
-            throw $e; // Re-lanzar la excepción para que el controlador la maneje
+            throw $e;
         }
     }
 }
-

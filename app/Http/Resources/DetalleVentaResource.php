@@ -23,6 +23,7 @@ class DetalleVentaResource extends JsonResource
             'cantidad' => (float) $this->cantidad,
             'precio_unitario' => (float) $this->precio_unitario, // Precio Bruto unitario en el momento de la venta
             'subtotal' => (float) $this->subtotal,
+            'estado' => $this->estado,
 
             // --- Desglose de Impuestos y Descuentos ---
             'iva_porcentaje' => (float) $this->iva_porcentaje,

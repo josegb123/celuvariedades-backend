@@ -104,6 +104,16 @@ class VentaService
             // 5. Procesamiento de Ítems (Detalles y Kárdex)
             foreach ($calculos['items'] as $itemCalculado) {
 
+
+                // Estado financiero del producto
+                if ($tipoVenta->maneja_cartera) {
+                    $estadoItem = 'pendiente';
+                } else {
+                    $estadoItem = 'pagado';
+                }
+
+
+
                 // Creación del Detalle de Venta
                 DetalleVenta::create([
                     'venta_id' => $venta->id,
@@ -111,6 +121,7 @@ class VentaService
                     'cantidad' => $itemCalculado['cantidad'],
                     'precio_unitario' => $itemCalculado['precio_unitario'],
                     'subtotal' => $itemCalculado['subtotal'],
+                    'estado' => $estadoItem,
                     'nombre_producto' => $itemCalculado['nombre_producto'],
                     'codigo_barra' => $itemCalculado['codigo_barra'],
                     'precio_costo' => $itemCalculado['precio_costo'],

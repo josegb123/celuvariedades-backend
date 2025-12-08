@@ -19,11 +19,12 @@ class VentaShowResource extends VentaIndexResource
     // 2. Añade los campos detallados/financieros
     $data['totales_financieros'] = [
       'subtotal' => (float) $this->subtotal,
+      'estado' => $this->estado,
       'iva_monto' => (float) $this->iva_monto,
       'iva_porcentaje' => (float) $this->iva_porcentaje,
       'descuento_total' => (float) $this->descuento_total,
-      // Aquí puedes agregar campos de cartera si la relación está cargada
-      // 'cartera' => CarteraResource::make($this->whenLoaded('cartera')),
+      'abono_inicial' => (float) $this->abono_inicial,
+
     ];
 
     // 3. Añade la colección completa de ítems (detalles)

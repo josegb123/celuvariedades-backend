@@ -23,8 +23,8 @@ class StoreAbonoRequest extends FormRequest
           $query->whereIn('estado', ['Pendiente', 'Vencida']);
         }),
       ],
+      'caja_diaria_id' => 'nullable|integer',
       'monto' => 'required|numeric|min:1',
-
       'metodo_pago' => [
         'required',
         'string',

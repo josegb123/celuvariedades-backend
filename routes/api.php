@@ -54,7 +54,8 @@ Route::apiResource('/productos', ProductoController::class)->middleware('auth:sa
 
 // Gestión de Proveedores
 Route::apiResource('proveedor', ProveedorController::class)->middleware('auth:sanctum');
-Route::post('/recibir-pedidos', [PedidoProveedorController::class, 'store'])->middleware('auth:sanctum');
+Route::apiResource('/pedidos-proveedor', PedidoProveedorController::class)->middleware('auth:sanctum');
+
 
 // Gestión de Ventas y Facturación
 Route::apiResource('/ventas', VentaController::class)->middleware('auth:sanctum');
@@ -76,10 +77,14 @@ Route::prefix('estadisticas')->middleware('auth:sanctum')->group(function () {
     Route::get('/ticket-promedio', [EstadisticasController::class, 'getTicketPromedio']);
     Route::get('/historial-ganancias', [EstadisticasController::class, 'historialGanancias']);
     Route::get('/productos-bajo-stock', [EstadisticasController::class, 'productosBajoStock']);
-    Route::get('/top-clientes', [EstadisticasController::class, 'TopClientes']);
-    Route::get('/top-productos', [EstadisticasController::class, 'TopProductos']);
+    Route::get('/top-clientes', [EstadisticasController::class, 'topClientes']);
+    Route::get('/top-productos', [EstadisticasController::class, 'topProductosVendidos']);
     Route::get('/ventas-por-periodo', [EstadisticasController::class, 'getVentasPorPeriodo']);
     Route::get('/historial-ventas', [EstadisticasController::class, 'historialGanancias']);
+    Route::get('/productos-baja-rotacion', [EstadisticasController::class, 'productosBajaRotacion']); // New
+    Route::get('/valor-pedidos-proveedores', [EstadisticasController::class, 'valorPedidosProveedores']); // New
+    Route::get('/top-clientes-frecuencia', [EstadisticasController::class, 'topClientesFrecuencia']); // New
+    Route::get('/exportar-ventas-excel', [EstadisticasController::class, 'exportarVentasExcel']); // New
 });
 
 // Gestión de Devoluciones
