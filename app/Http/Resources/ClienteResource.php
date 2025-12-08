@@ -22,9 +22,10 @@ class ClienteResource extends JsonResource
             'telefono' => $this->telefono,
             'email' => $this->email,
             'direccion' => $this->direccion,
-            'estado_financiero' => $this->whenLoaded('cartera', function () {
-                // Aquí usamos el CarteraResource para devolver solo los datos clave
-                return new CarteraResource($this->cartera);
+            'aval_id' => $this->aval_id,
+            'estado_financiero' => $this->whenLoaded('saldos', function () {
+
+                return SaldoClienteResource::collection($this->saldos);
             }),
         ];
     }

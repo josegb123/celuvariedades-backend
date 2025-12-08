@@ -24,12 +24,15 @@ class Cliente extends Model
     ];
 
     /**
-     * Un Cliente puede tener muchas deudas registradas en Cartera.
+     * Get all of the Saldos for the Cliente
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function cartera()
+    public function saldos()
     {
-        return $this->hasMany(Cartera::class);
+        return $this->hasMany(SaldoCliente::class);
     }
+
 
     /**
      * Get all of the Mensajes for the Cliente

@@ -3,19 +3,35 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreClienteRequest;
+use App\Http\Requests\UpdateClienteRequest;
 use App\Http\Resources\ClienteResource;
 use App\Models\Cliente;
-use App\Http\Requests\UpdateClienteRequest;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
 
 class ClienteController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request): JsonResource
     {
-        // Retorna todos los clientes paginados (buena práctica para grandes datasets)
-        return ClienteResource::collection(Cliente::paginate(15));
+        // 1. Obtener el término de búsqueda de la solicitud.
+        $search = $request->get('search');
+
+        $query = Cliente::with('saldos');
+
+        // 2. Aplicar la lógica de búsqueda solo si el parámetro 'search' existe.
+        $query->when($search, function ($query, $search) {
+            // Usamos where para la primera condición y orWhere para las subsiguientes
+            $query->where('nombre', 'LIKE', "%{$search}%")
+                ->orWhere('cedula', 'LIKE', "%{$search}%");
+        });
+
+        // 3. Aplicar la paginación a la consulta final.
+        $clientes = $query->paginate(15);
+
+        return ClienteResource::collection($clientes);
     }
 
     // --------------------------------------------------------------------------
@@ -38,8 +54,10 @@ class ClienteController extends Controller
      */
     public function show(Cliente $cliente)
     {
+        $query = Cliente::with('saldos')->find($cliente->id);
+
         // El Route Model Binding ya inyectó el cliente o lanzó 404
-        return new ClienteResource($cliente);
+        return new ClienteResource($query);
     }
 
     // --------------------------------------------------------------------------

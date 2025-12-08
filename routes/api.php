@@ -41,6 +41,9 @@ Route::apiResource('/carteras', CarteraController::class)->only([
     'show',
     'update',
 ])->middleware('auth:sanctum');
+
+
+
 // Rutas para Cuentas por Cobrar
 Route::get('/cuentas-por-cobrar', [CuentaPorCobrarController::class, 'index'])->middleware('auth:sanctum');
 Route::get('/cuentas-por-cobrar/{id}', [CuentaPorCobrarController::class, 'show'])->middleware('auth:sanctum');
