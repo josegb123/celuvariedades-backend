@@ -10,6 +10,7 @@ use App\Models\Venta;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class VentaService
 {
@@ -144,14 +145,14 @@ class VentaService
                     referenciaId: $venta->id
                 );
             }
-
             // 6. Gestión de Movimiento Financiero (Solo si es venta de contado/tarjeta/transferencia)
             if (!$tipoVenta->maneja_cartera && $venta->estado === 'finalizada') {
+                $resumenLimitado = Str::limit($venta->resumenProductos, 100, '...');
                 // Registrar el ingreso total de la venta en el libro de caja
                 $this->movimientoFinancieroService->registrarMovimiento(
                     monto: $venta->total,
                     tipoMovimientoNombre: 'Venta de Productos',
-                    descripcion: $venta->resumenProductos,
+                    descripcion: $resumenLimitado,
                     metodoPago: $venta->metodo_pago,
                     ventaId: $venta->id,
                     userId: $venta->user_id,

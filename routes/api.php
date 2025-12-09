@@ -52,6 +52,7 @@ Route::apiResource('/pedidos-proveedor', PedidoProveedorController::class)->midd
 
 
 // Gestión de Ventas y Facturación
+Route::get('/ventas/{venta}/imprimir-pos', [VentaController::class, 'imprimirFacturaPos']);
 Route::apiResource('/ventas', VentaController::class)->middleware('auth:sanctum');
 
 // Gestión Financiera

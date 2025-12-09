@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreDevolucionRequest;
 use App\Http\Resources\DevolucionResource;
+use App\Http\Resources\DevolucionShowResource;
 use App\Models\Devolucion;
 use App\Models\Venta;
 use App\Services\DevolucionService; // <-- Importación del servicio
@@ -68,15 +69,19 @@ class DevolucionController extends Controller
     }
 
     /**
-     * Obtiene todos los registros de Devolucion con estado_gestion = 'Pendiente'.
+     * Obtiene todos los registros de Devolucion con estado_gestion = 'Pendiente',
+     * incluyendo el proveedor del producto.
      */
     public function getPendientes(Request $request)
     {
         $devolucionesPendientes = Devolucion::where('estado_gestion', 'Pendiente')
-            ->with(['producto', 'cliente', 'venta', 'detalleVenta']) // Added detalleVenta
+            // Precarga el producto Y su proveedor anidado
+            ->with(['producto.proveedores', 'cliente'])
+            // Eliminamos 'venta' y 'detalleVenta' porque no los necesitamos en el frontend
             ->get();
 
-        return response()->json($devolucionesPendientes);
+        // Usamos la Colección de Resources para transformar los datos
+        return DevolucionShowResource::collection($devolucionesPendientes);
     }
 
     /**

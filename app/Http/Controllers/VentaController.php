@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 /**
  * Gestión de Ventas (Facturas/Tiquetes POS).
@@ -222,4 +223,49 @@ class VentaController extends Controller
 
         return response()->json(['message' => 'Venta eliminada permanentemente.'], 204);
     }
+
+    /**
+     * Genera y streamea la factura POS en formato PDF para impresión.
+     *
+     * @param  \App\Models\Venta  $venta
+     * @return \Illuminate\Http\Response (un PDF stream)
+     */
+    public function imprimirFacturaPos(Venta $venta)
+    {
+        // Cargar las relaciones necesarias
+        $venta->load(['detalles', 'cliente', 'user']);
+
+        // --- CÁLCULO DE ALTURA DINÁMICA (en puntos) ---
+
+        // 1. Altura fija (Header, Footer, Detalles, Totales)
+        $alturaFijaPuntos = 350;
+
+        // 2. Altura variable por ítem (12 puntos por línea de producto)
+        $alturaPorDetalle = 20;
+        $conteoDetalles = $venta->detalles->count();
+
+        // 3. Altura total requerida
+        $alturaTotalPuntos = $alturaFijaPuntos + ($conteoDetalles * $alturaPorDetalle);
+
+        // ⚠️ OJO: Agregar un margen extra de seguridad (ej. 30 puntos)
+        $alturaTotalPuntos += 30;
+
+        // --- CONFIGURACIÓN DE PAPEL ---
+
+        // Ancho fijo de 80mm = 226.77 puntos
+        $anchoPosPuntos = 226.77;
+
+        // Usamos el array(0, 0, ancho, alto) para definir el tamaño
+        // El "0, 0" define la coordenada de inicio, no es parte de la dimensión.
+        $tamanoPapel = [0, 0, $anchoPosPuntos, $alturaTotalPuntos];
+
+        // 2. Generar el PDF
+        $pdf = Pdf::loadView('pdfs.factura_celuvariedades_pos', compact('venta'))
+            // Aplicar TAMAÑO DE PAPEL y ORIENTACIÓN
+            ->setPaper($tamanoPapel, 'portrait');
+
+        // 3. Devolver la respuesta en streaming
+        return $pdf->stream("factura-celuvariedades-pos-{$venta->id}.pdf");
+    }
+
 }
