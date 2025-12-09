@@ -3,12 +3,10 @@
 use App\Http\Controllers\AbonoController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CajaDiariaController;
-use App\Http\Controllers\CarteraController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\CuentaPorCobrarController;
 use App\Http\Controllers\EstadisticasController;
-use App\Http\Controllers\FacturaController;
 use App\Http\Controllers\MovimientoFinancieroController;
 use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\TipoMovimientoFinancieroController;
@@ -35,13 +33,6 @@ Route::put('/usuarios/{id}/restore', [UserController::class, 'restore'])->middle
 
 // Gestión de Clientes
 Route::apiResource('/clientes', ClienteController::class)->middleware('auth:sanctum');
-// Rutas para Cartera (asociadas a clientes)
-Route::apiResource('/carteras', CarteraController::class)->only([
-    'store',
-    'show',
-    'update',
-])->middleware('auth:sanctum');
-
 
 
 // Rutas para Cuentas por Cobrar
@@ -62,7 +53,6 @@ Route::apiResource('/pedidos-proveedor', PedidoProveedorController::class)->midd
 
 // Gestión de Ventas y Facturación
 Route::apiResource('/ventas', VentaController::class)->middleware('auth:sanctum');
-Route::apiResource('/facturas', FacturaController::class)->middleware('auth:sanctum');
 
 // Gestión Financiera
 Route::apiResource('/movimientos-financieros', MovimientoFinancieroController::class)->middleware('auth:sanctum');

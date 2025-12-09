@@ -19,7 +19,7 @@ class SaldoCliente extends Model
         'monto_original', // Monto total que se le debe al cliente
         'monto_pendiente', // Saldo actual a favor del cliente
         'estado', // Activo, Usado, Expirado
-        'motivo', // Anulación, Devolución, Reembolso
+        'motivo', // Anulación, Devolución, Reembolso        
     ];
 
     public function cliente(): BelongsTo
@@ -31,4 +31,5 @@ class SaldoCliente extends Model
     {
         return $this->belongsTo(CuentaPorCobrar::class);
     }
+
 }

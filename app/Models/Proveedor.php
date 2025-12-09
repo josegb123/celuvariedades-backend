@@ -51,7 +51,6 @@ class Proveedor extends Model
     public function productos(): BelongsToMany
     {
         return $this->belongsToMany(Producto::class, 'proveedor_producto', 'proveedor_id', 'producto_id')
-            ->withPivot(['precio_costo', 'referencia_proveedor']) // Incluir campos de la tabla pivote
             ->withTimestamps(); // Si la tabla pivote tiene timestamps
     }
 

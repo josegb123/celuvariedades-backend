@@ -20,7 +20,7 @@ class SaldoClienteResource extends JsonResource
             'monto_original' => $this->monto_original,
             'monto_pendiente' => $this->monto_pendiente,
             'estado' => $this->estado,
-            'motivo' => $this->motivo
+            'motivo' => $this->motivo,
         ];
     }
 }

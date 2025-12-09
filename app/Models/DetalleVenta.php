@@ -32,6 +32,7 @@ class DetalleVenta extends Model
         'iva_monto',       // Monto de IVA
         'descuento_monto', // Monto de descuento aplicado a esta línea
         // Si tienes más impuestos (ej. INC) deberías agregarlos aquí
+        'cantidad_devuelta'
     ];
 
     /**

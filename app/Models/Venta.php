@@ -52,14 +52,6 @@ class Venta extends Model
         return $this->belongsTo(TipoVenta::class);
     }
 
-    /**
-     * Una Venta puede generar un único registro de Cartera (si es a crédito/separe).
-     */
-    public function cartera()
-    {
-        return $this->hasOne(Cartera::class);
-    }
-
 
     /**
      * Una Venta tiene una CuentaPorCobrar (si es a crédito).

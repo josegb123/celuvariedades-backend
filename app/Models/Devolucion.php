@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Devolucion extends Model
 {
@@ -13,9 +14,10 @@ class Devolucion extends Model
 
     protected $fillable = [
         'venta_id',
+        'detalle_venta_id', // <-- CORRECCIÓN: Agregado para trazabilidad
         'producto_id',
         'cliente_id',
-        'id_unico_producto',
+        // 'id_unico_producto', // <-- CORRECCIÓN: Eliminado de fillable
         'cantidad',
         'motivo',
         'costo_unitario',
@@ -29,6 +31,14 @@ class Devolucion extends Model
     public function venta(): BelongsTo
     {
         return $this->belongsTo(Venta::class);
+    }
+
+    /**
+     * Get the detalle de venta original.
+     */
+    public function detalleVenta(): BelongsTo
+    {
+        return $this->belongsTo(DetalleVenta::class, 'detalle_venta_id');
     }
 
     /**
@@ -46,4 +56,13 @@ class Devolucion extends Model
     {
         return $this->belongsTo(Cliente::class);
     }
+
+    /**
+     * Get the saldoCliente records associated with the Devolucion (si aplica).
+     */
+    public function saldoCliente(): HasMany
+    {
+        return $this->hasMany(SaldoCliente::class);
+    }
+
 }

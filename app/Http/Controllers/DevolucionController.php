@@ -4,130 +4,76 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreDevolucionRequest;
 use App\Http\Resources\DevolucionResource;
-use App\Models\CajaDiaria;
-use App\Models\Cliente;
 use App\Models\Devolucion;
 use App\Models\Venta;
-use App\Models\MovimientoFinanciero;
-use App\Models\SaldoCliente;
-use App\Models\TipoMovimientoFinanciero;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
-use Illuminate\Support\Facades\DB;
+use App\Services\DevolucionService; // <-- Importación del servicio
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Http\Request; // Keep for potential other methods
 
 class DevolucionController extends Controller
 {
+    private DevolucionService $devolucionService;
+
+    // 1. Inyección de dependencia del servicio
+    public function __construct(DevolucionService $devolucionService)
+    {
+        $this->devolucionService = $devolucionService;
+    }
+
     /**
-     * Registra una nueva devolución de productos.
-     * El stock NO se incrementa, la venta se marca como 'reembolsada' y se generan movimientos financieros.
+     * Registra una nueva devolución de productos, delegando la lógica de negocio al servicio.
      *
      * @param  \App\Http\Requests\StoreDevolucionRequest  $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function store(StoreDevolucionRequest $request)
     {
-        // DB::transaction garantiza que todo se revierta si hay un error
-        return DB::transaction(function () use ($request) {
-            try {
-                $validatedData = $request->validated();
-                $ventaId = $validatedData['venta_id'];
-                $productosDevueltos = $validatedData['productos_devueltos'];
+        try {
+            $validatedData = $request->validated();
 
-                $venta = Venta::findOrFail($ventaId);
+            $venta = Venta::findOrFail($validatedData['venta_id']);
 
-                // 1. CHEQUEO DE ESTADO (Anti-fraude)
-                if ($venta->estado === 'reembolsada') {
-                    return response()->json([
-                        'message' => 'Error: La Venta #' . $ventaId . ' ya ha sido marcada como reembolsada y no puede ser procesada de nuevo.',
-                        'venta_estado' => $venta->estado
-                    ], 409);
-                }
-
-                $cliente = $venta->cliente ?? Cliente::findOrFail($request->cliente_id);
-                $totalMontoDevuelto = 0;
-                $devolucionesCreadas = [];
-
-                foreach ($productosDevueltos as $item) {
-                    // 2. CREAR DEVOLUCIÓN (Se revierte si la transacción falla)
-                    $devolucion = Devolucion::create([
-                        'venta_id' => $ventaId,
-                        'producto_id' => $item['producto_id'],
-                        'cliente_id' => $cliente->id,
-                        'id_unico_producto' => $item['id_unico_producto'],
-                        'cantidad' => $item['cantidad'],
-                        'motivo' => $item['motivo'],
-                        'costo_unitario' => $item['costo_unitario'],
-                        'notas' => $item['notas'] ?? null,
-                        'estado_gestion' => 'Pendiente',
-                    ]);
-                    $devolucionesCreadas[] = $devolucion;
-                    $totalMontoDevuelto += ($item['cantidad'] * $item['costo_unitario']);
-                }
-
-                // 3. ANULAR VENTA (Se revierte si la transacción falla)
-                $venta->estado = 'reembolsada';
-                $venta->save();
-
-                // 4. IMPACTO FINANCIERO (Uso de value() para eficiencia)
-                $tipoEgreso = TipoMovimientoFinanciero::where('nombre', 'Reembolso a Cliente')->firstOrFail(); // Usar firstOrFail
-
-                $caja_diaria_id = CajaDiaria::query()
-                    ->where('user_id', auth()->id())
-                    ->where('fecha_cierre', null)
-                    ->value('id');
-
-                if (is_null($caja_diaria_id)) {
-                    // Opción: Lanzar excepción si es obligatorio tener una caja abierta
-                    // throw new \Exception("Debe tener una Caja Diaria Abierta para procesar el reembolso.");
-                    Log::warning('No se pudo asociar Movimiento Financiero a Caja Diaria abierta para usuario: ' . auth()->id());
-                }
-
-                MovimientoFinanciero::create([
-                    'monto' => $totalMontoDevuelto,
-                    'tipo_movimiento_id' => $tipoEgreso->id,
-                    'tipo' => 'Egreso',
-                    'venta_id' => $ventaId,
-                    'user_id' => auth()->id(),
-                    'caja_diaria_id' => $caja_diaria_id,
-                    'descripcion' => 'Devolución de productos de la Venta #' . $ventaId,
-                    'metodo_pago' => 'Transferencia',
-                ]);
-
-                SaldoCliente::create([
-                    'cliente_id' => $cliente->id,
-                    'monto_original' => $totalMontoDevuelto,
-                    'monto_pendiente' => $totalMontoDevuelto,
-                    'estado' => 'Activo',
-                    'motivo' => 'Devolución de productos de la Venta #' . $ventaId,
-                ]);
-
-                // 5. RESPUESTA (Uso de API Resource)
-                $devolucionesCollection = new EloquentCollection($devolucionesCreadas);
-
+            // 1. CHEQUEO DE ESTADO (Validación)
+            if ($venta->estado === 'cancelada' || $venta->estado === 'reembolsada') {
                 return response()->json([
-                    'message' => 'Devolución registrada exitosamente. Venta actualizada y saldo de cliente generado.',
-                    'devoluciones' => DevolucionResource::collection($devolucionesCollection)
-                ], 201);
-
-            } catch (\Exception $e) {
-                // El catch maneja cualquier error y la transacción lo revierte todo
-                Log::error('Error al registrar la devolución: ' . $e->getMessage(), ['exception' => $e, 'request_data' => $request->all()]);
-                return response()->json(['message' => 'Error al procesar la devolución: ' . $e->getMessage()], 500);
+                    'message' => 'Error: La venta ya fue cancelada/reembolsada y no acepta devoluciones.',
+                ], 409);
             }
-        });
+
+            // 2. DELEGACIÓN DE LÓGICA DE NEGOCIO (El servicio maneja la transacción DB)
+            $ventaActualizada = $this->devolucionService->procesarDevolucionParcial(
+                venta: $venta,
+                itemsDevueltos: $validatedData['items_devueltos'],
+                metodoReembolso: $validatedData['metodo_reembolso'] ?? 'Efectivo'
+            );
+
+            // 3. RESPUESTA
+            // Cargamos las devoluciones recién creadas si las necesitamos para el response
+            $nuevasDevoluciones = Devolucion::where('venta_id', $venta->id)
+                ->where('created_at', '>=', now()->subSeconds(5))
+                ->get();
+
+            return response()->json([
+                'message' => 'Devolución procesada exitosamente. Estado de venta: ' . $ventaActualizada->estado,
+                'venta_id' => $ventaActualizada->id,
+                'nuevo_estado' => $ventaActualizada->estado,
+                'devoluciones_creadas' => DevolucionResource::collection($nuevasDevoluciones)
+            ], 201);
+
+        } catch (\Exception $e) {
+            Log::error('Error al procesar la devolución: ' . $e->getMessage(), ['exception' => $e, 'request_data' => $request->all()]);
+            // El servicio lanzará la excepción, la cual revierte la transacción.
+            return response()->json(['message' => 'Error al procesar la devolución: ' . $e->getMessage()], 500);
+        }
     }
 
     /**
      * Obtiene todos los registros de Devolucion con estado_gestion = 'Pendiente'.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
      */
     public function getPendientes(Request $request)
     {
         $devolucionesPendientes = Devolucion::where('estado_gestion', 'Pendiente')
-            ->with(['producto', 'cliente', 'venta']) // Eager load relationships
+            ->with(['producto', 'cliente', 'venta', 'detalleVenta']) // Added detalleVenta
             ->get();
 
         return response()->json($devolucionesPendientes);
@@ -135,15 +81,11 @@ class DevolucionController extends Controller
 
     /**
      * Actualiza el estado_gestion de una Devolucion específica.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id  ID de la Devolucion
-     * @return \Illuminate\Http\JsonResponse
      */
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
-            'estado_gestion' => ['required', 'string', 'in:Pendiente,Contactado,Finalizada'], // Define allowed states
+            'estado_gestion' => ['required', 'string', 'in:Pendiente,Contactado,Finalizada'],
         ]);
 
         $devolucion = Devolucion::findOrFail($id);

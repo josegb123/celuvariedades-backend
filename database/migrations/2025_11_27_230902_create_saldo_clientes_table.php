@@ -20,7 +20,6 @@ return new class extends Migration {
             $table->decimal('monto_pendiente', 10, 2);
             $table->string('estado', 50)->default('Activo');
             $table->string('motivo', 100);
-
             $table->timestamps();
             $table->softDeletes();
         });

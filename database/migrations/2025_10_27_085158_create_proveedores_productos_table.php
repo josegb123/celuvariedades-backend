@@ -15,9 +15,6 @@ return new class extends Migration {
             $table->foreignId('proveedor_id')->constrained('proveedores')->onDelete('cascade');
             $table->foreignId('producto_id')->constrained('productos')->onDelete('cascade');
 
-            // Datos específicos de la relación:
-            $table->decimal('precio_costo', 10, 2)->nullable()->comment('Precio al que el proveedor vende este producto.');
-            $table->string('referencia_proveedor', 50)->nullable()->comment('Código o SKU que usa el proveedor para este producto.');
 
             // Definir la clave primaria compuesta para asegurar unicidad
             $table->primary(['proveedor_id', 'producto_id']);

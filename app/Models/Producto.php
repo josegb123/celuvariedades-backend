@@ -60,8 +60,7 @@ class Producto extends Model
     public function proveedores(): BelongsToMany
     {
         return $this->belongsToMany(Proveedor::class, 'proveedor_producto', 'producto_id', 'proveedor_id')
-            // Incluimos los campos extra de la tabla pivote
-            ->withPivot(['precio_costo', 'referencia_proveedor'])
+
             ->withTimestamps(); // Si tu tabla pivote tiene created_at/updated_at
     }
 

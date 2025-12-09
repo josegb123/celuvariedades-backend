@@ -130,13 +130,13 @@ class VentaController extends Controller
 
         try {
             // La lógica de registro de venta, creación de detalles, actualización de
-            // inventario, y manejo de cartera debe estar centralizada y manejada en una transacción 
+            // inventario, y manejo de saldo debe estar centralizada y manejada en una transacción 
             // de base de datos dentro del servicio.
             $venta = $this->ventaService->registrarVenta($validatedData);
 
             return response()->json([
                 'message' => 'Venta registrada con éxito. Inventario actualizado.',
-                'venta' => VentaShowResource::make($venta->load('detalles.producto', 'cartera')),
+                'venta' => VentaShowResource::make($venta->load('detalles.producto', )),
             ], 201);
 
         } catch (StockInsuficienteException $e) {
@@ -157,7 +157,7 @@ class VentaController extends Controller
     public function show(Venta $venta): JsonResponse
     {
         // Aseguramos la carga de todas las relaciones aquí
-        $venta->load(['detalles.producto', 'cartera', 'cliente', 'user']);
+        $venta->load(['detalles.producto', 'cliente', 'user']);
 
         // Usamos el Resource completo para el detalle
         return response()->json(VentaShowResource::make($venta));

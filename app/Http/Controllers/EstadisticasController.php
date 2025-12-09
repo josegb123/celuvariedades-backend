@@ -231,37 +231,6 @@ class EstadisticasController extends Controller
         ]);
     }
 
-    /**
-     * Muestra las ventas totales agrupadas por día, mes o año.
-     * Recibe el parámetro opcional 'periodo' ('day', 'month', 'year').
-     */
-    public function ventasPorPeriodo(Request $request): JsonResponse
-    {
-        // Por defecto, agrupa por mes
-        $periodo = $request->get('periodo', 'month');
-
-        // Define el formato de fecha para la función DATE_FORMAT de MySQL
-        $dateFormat = match ($periodo) {
-            'day' => '%Y-%m-%d',
-            'year' => '%Y',
-            default => '%Y-%m', // Month
-        };
-
-        $ventas = Venta::select(
-            // Usa una función de DB para formatear la fecha y agrupar
-            DB::raw("DATE_FORMAT(created_at, '{$dateFormat}') as periodo_fecha"),
-            DB::raw('SUM(total) as ventas_totales')
-        )
-            // Puedes añadir un filtro de rango de fechas aquí (ej: últimas 6 meses)
-            ->groupBy('periodo_fecha')
-            ->orderBy('periodo_fecha')
-            ->get();
-
-        return response()->json([
-            'periodo' => $periodo,
-            'data' => $ventas,
-        ]);
-    }
 
     /**
      * Lista los productos cuyo stock está por debajo de un umbral (threshold).
@@ -297,7 +266,10 @@ class EstadisticasController extends Controller
         try {
             // 2. Ejecutar la consulta de agregación
             $ventasPorPeriodo = Venta::query()
-                ->where('estado', 'finalizada')
+                ->where(function ($query) {
+                    $query->where('ventas.estado', 'finalizada')
+                        ->orWhere('ventas.estado', 'parcialmente devuelta');
+                })
                 ->select(
                     DB::raw("DATE_FORMAT(created_at, '{$dateFormat}') as periodo_fecha"),
                     DB::raw('SUM(total) as ventas_totales')
@@ -349,7 +321,10 @@ class EstadisticasController extends Controller
             // Calcula el promedio de la columna 'total' de la tabla 'ventas'
             $promedio = Venta::query()
                 // Excluye ventas canceladas o reembolsadas (ajusta según tus estados)
-                ->where('estado', 'finalizada')
+                ->where(function ($query) {
+                    $query->where('ventas.estado', 'finalizada')
+                        ->orWhere('ventas.estado', 'parcialmente devuelta');
+                })
                 ->avg('total');
 
             // Si el resultado es null (no hay ventas), se devuelve 0
@@ -377,20 +352,26 @@ class EstadisticasController extends Controller
             default => '%Y-%m',
         };
 
-        $margenHistorico = DetalleVenta::query()
+        $query = DetalleVenta::query()
             // 1. Unir la tabla de detalle con la tabla de ventas
             ->join('ventas', 'detalle_ventas.venta_id', '=', 'ventas.id')
 
-            // 2. Filtramos solo por ventas en estado 'finalizada'
-            ->where('ventas.estado', 'finalizada')
+            // 2. FILTRO CORREGIDO: Agrupamos las condiciones de estado
+            ->where(function ($query) {
+                $query->where('ventas.estado', 'finalizada')
+                    ->orWhere('ventas.estado', 'parcialmente devuelta');
+            })
 
             ->select(
                 DB::raw("DATE_FORMAT(ventas.updated_at, '{$dateFormat}') as periodo_fecha"),
+
+                // Calculamos el beneficio usando la cantidad neta restante (asumiendo que 'cantidad' fue actualizada)
                 DB::raw('SUM((detalle_ventas.precio_unitario - detalle_ventas.precio_costo) * detalle_ventas.cantidad) as beneficio_bruto')
             )
 
             // 3. Aplicar el filtro de rango de fechas
             ->when($request->has(['fecha_inicio', 'fecha_fin']), function ($query) use ($request) {
+                // Aseguramos que el filtro de fecha se aplique a ventas.updated_at
                 $query->whereBetween('ventas.updated_at', [
                     $request->fecha_inicio . ' 00:00:00',
                     $request->fecha_fin . ' 23:59:59'
@@ -398,8 +379,9 @@ class EstadisticasController extends Controller
             })
 
             ->groupBy('periodo_fecha')
-            ->orderBy('periodo_fecha')
-            ->get();
+            ->orderBy('periodo_fecha');
+
+        $margenHistorico = $query->get(); // Ejecutamos la consulta
 
         return response()->json([
             'data' => $margenHistorico,

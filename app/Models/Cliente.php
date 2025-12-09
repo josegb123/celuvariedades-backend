@@ -35,16 +35,6 @@ class Cliente extends Model
 
 
     /**
-     * Get all of the Mensajes for the Cliente
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
-    public function mensajes()
-    {
-        return $this->hasMany(Mensaje::class);
-    }
-
-    /**
      * Get all of the ventas for the Cliente
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class CuentaPorCobrar extends Model
@@ -46,4 +47,13 @@ class CuentaPorCobrar extends Model
     {
         return $this->hasMany(AbonoCartera::class);
     }
+
+    /**
+     * Una cuenta por cobrar puede depositar su saldo en un saldo de cliente     
+     */
+    public function saldoCliente(): HasOne
+    {
+        return $this->HasOne(SaldoCliente::class);
+    }
+
 }
