@@ -39,6 +39,13 @@ class MovimientoFinancieroController extends Controller
         if ($request->filled('fecha_inicio') && $request->filled('fecha_fin')) {
             $query->whereBetween('created_at', [$request->fecha_inicio, $request->fecha_fin . ' 23:59:59']);
         }
+        // Add filters for caja_diaria_id and metodo_pago
+        if ($request->filled('caja_diaria_id')) {
+            $query->where('caja_diaria_id', $request->caja_diaria_id);
+        }
+        if ($request->filled('metodo_pago')) {
+            $query->where('metodo_pago', $request->metodo_pago);
+        }
 
         $movimientos = $query->paginate(20);
 

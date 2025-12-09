@@ -6,6 +6,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Auth; // Add this line
 
 class StoreVentaRequest extends FormRequest
 {
@@ -14,7 +15,8 @@ class StoreVentaRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return auth()->check();
+        $user = Auth::user(); // Add this line
+        return $user && ($user->role === 'administrador' || $user->role === 'admin' || $user->role === 'vendedor'); // Modify this line
     }
 
     /**
@@ -65,7 +67,7 @@ class StoreVentaRequest extends FormRequest
             // Permitimos descuentos por ítem, aunque se calcule en el servicio.
             'items.*.descuento' => 'nullable|numeric|min:0',
 
-            // Precio Unitario: Opcional. Si no se envía, se toma el precio del producto, 
+            // Precio Unitario: Opcional. Si no se envía, se toma el precio del producto,
             // pero si se envía, se permite modificarlo (útil para ofertas o cambios manuales).
             'items.*.precio_unitario' => 'nullable|numeric|min:0',
         ];

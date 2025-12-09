@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 
-class UpdateClienteRequest extends FormRequest
+class CerrarCajaRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -23,16 +23,8 @@ class UpdateClienteRequest extends FormRequest
      */
     public function rules(): array
     {
-        $clienteId = $this->route('cliente')->id;
-
         return [
-            'cedula' => 'sometimes|required|unique:clientes,cedula,'.$clienteId,
-            'nombre' => 'sometimes|required|string|max:255',
-            'apellidos' => 'sometimes|required|string|max:255',
-            'telefono' => 'sometimes|required|string|max:20',
-            'email' => 'sometimes|required|email|max:255|unique:clientes,email,'.$clienteId,
-            'direccion' => 'sometimes|required|string|max:255',
-            'aval_id' => 'nullable|exists:clientes,id',
+            'monto_cierre_fisico' => 'required|numeric|min:0',
         ];
     }
 }

@@ -233,7 +233,10 @@ class VentaController extends Controller
     public function imprimirFacturaPos(Venta $venta)
     {
         // Cargar las relaciones necesarias
-        $venta->load(['detalles', 'cliente', 'user']);
+        $venta->load(['detalles.producto', 'cliente', 'user']); // Ensure product relation is loaded for details
+
+        // Aseguramos que los atributos como subtotal, iva_monto, total estén disponibles
+        $venta->refresh(); // Ensures the latest state of the model from the database
 
         // --- CÁLCULO DE ALTURA DINÁMICA (en puntos) ---
 

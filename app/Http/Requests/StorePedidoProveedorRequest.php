@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 
-class StoreProveedorRequest extends FormRequest
+class StorePedidoProveedorRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -23,7 +23,11 @@ class StoreProveedorRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            'proveedor_id' => 'required|exists:proveedores,id',
+            'productos' => 'required|array|min:1',
+            'productos.*.producto_id' => 'required|exists:productos,id',
+            'productos.*.cantidad' => 'required|integer|min:1',
+            'productos.*.precio_compra' => 'required|numeric|min:0',
         ];
     }
 }

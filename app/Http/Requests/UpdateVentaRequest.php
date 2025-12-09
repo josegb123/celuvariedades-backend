@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Auth; // Añadido
 
 class UpdateVentaRequest extends FormRequest
 {
@@ -12,8 +13,7 @@ class UpdateVentaRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        // Verificar que el usuario esté autenticado.
-        return auth()->check();
+        return Auth::user()->role === 'admin';
     }
 
     /**

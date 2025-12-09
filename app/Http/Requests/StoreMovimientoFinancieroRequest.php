@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Auth;
 
 class StoreMovimientoFinancieroRequest extends FormRequest
 {
@@ -12,8 +13,8 @@ class StoreMovimientoFinancieroRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        // Asumiendo que se requiere autenticación para registrar movimientos financieros
-        return auth()->check();
+        $user = Auth::user();
+        return $user && ($user->role === 'administrador' || $user->role === 'admin' || $user->role === 'vendedor');
     }
 
     /**

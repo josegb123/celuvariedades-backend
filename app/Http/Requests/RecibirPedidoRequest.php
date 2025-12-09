@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Auth; // Añadido
 
 class RecibirPedidoRequest extends FormRequest
 {
@@ -12,7 +13,7 @@ class RecibirPedidoRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return auth()->check(); // Only authenticated users can receive orders
+        return Auth::user()->role === 'admin';
     }
 
     /**

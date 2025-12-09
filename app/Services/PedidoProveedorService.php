@@ -12,11 +12,63 @@ use App\Models\TipoMovimientoFinanciero;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\CajaDiaria;
+use Illuminate\Support\Facades\Auth; // Asegúrate de importar Auth
 
 class PedidoProveedorService
 {
     // Puedes definir una constante o cargarla de una configuración
     const MARGEN_BENEFICIO = 0.30; // 30% de margen (ejemplo)
+
+    /**
+     * Crea un nuevo pedido a proveedor con estado 'pendiente'.
+     */
+    public function createPedidoProveedor(array $data): PedidoProveedor
+    {
+        DB::beginTransaction();
+        try {
+            $userId = Auth::id(); // Obtener el ID del usuario autenticado
+
+            // 1. Crear PedidoProveedor con estado pendiente
+            $pedido = PedidoProveedor::create([
+                'proveedor_id' => $data['proveedor_id'],
+                'user_id' => $userId, // El usuario que crea el pedido
+                'monto_total' => 0, // Se calculará sumando los productos
+                'estado' => 'pendiente', // Estado inicial
+                'numero_factura_proveedor' => null, // Esto se llena al recibir
+                'fecha_entrega' => null, // Esto se llena al recibir
+            ]);
+
+            $montoTotal = 0;
+            // 2. Procesar productos del pedido
+            foreach ($data['productos'] as $productoData) {
+                $producto = Producto::findOrFail($productoData['producto_id']);
+                $costoUnitario = $productoData['precio_compra'];
+                $cantidad = $productoData['cantidad'];
+                $subtotal = $cantidad * $costoUnitario;
+                $montoTotal += $subtotal;
+
+                // Crear DetallePedidoProveedor
+                DetallePedidoProveedor::create([
+                    'pedido_proveedor_id' => $pedido->id,
+                    'producto_id' => $producto->id,
+                    'cantidad' => $cantidad,
+                    'precio_compra' => $costoUnitario,
+                    'subtotal' => $subtotal,
+                ]);
+            }
+
+            // Actualizar el monto_total del pedido después de calcular todos los productos
+            $pedido->monto_total = $montoTotal;
+            $pedido->save();
+
+            DB::commit();
+            return $pedido;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al crear el pedido a proveedor: ' . $e->getMessage(), ['exception' => $e]);
+            throw $e;
+        }
+    }
 
     public function receiveOrder(array $data): PedidoProveedor
     {
@@ -113,6 +165,51 @@ class PedidoProveedorService
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al recibir pedido: ' . $e->getMessage(), ['exception' => $e]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Actualiza un pedido a proveedor existente.
+     */
+    public function updatePedidoProveedor(array $data, PedidoProveedor $pedido): PedidoProveedor
+    {
+        DB::beginTransaction();
+        try {
+            // Actualizar campos principales del pedido
+            $pedido->fill($data);
+            $pedido->save();
+
+            // Si se incluyen productos, actualizar los detalles del pedido
+            if (isset($data['productos'])) {
+                // Eliminar detalles existentes y crear nuevos, o actualizar
+                $pedido->detalles()->delete(); // Una estrategia simple: borrar y recrear
+
+                $montoTotal = 0;
+                foreach ($data['productos'] as $productoData) {
+                    $producto = Producto::findOrFail($productoData['producto_id']);
+                    $costoUnitario = $productoData['precio_compra'];
+                    $cantidad = $productoData['cantidad'];
+                    $subtotal = $cantidad * $costoUnitario;
+                    $montoTotal += $subtotal;
+
+                    DetallePedidoProveedor::create([
+                        'pedido_proveedor_id' => $pedido->id,
+                        'producto_id' => $producto->id,
+                        'cantidad' => $cantidad,
+                        'precio_compra' => $costoUnitario,
+                        'subtotal' => $subtotal,
+                    ]);
+                }
+                $pedido->monto_total = $montoTotal;
+                $pedido->save();
+            }
+
+            DB::commit();
+            return $pedido;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al actualizar pedido: ' . $e->getMessage(), ['exception' => $e]);
             throw $e;
         }
     }

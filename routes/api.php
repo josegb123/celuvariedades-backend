@@ -15,76 +15,108 @@ use App\Http\Controllers\VentaController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\PedidoProveedorController;
 use App\Http\Controllers\DevolucionController; // Import DevolucionController
+use App\Http\Controllers\AvalController; // Import AvalController
 use Illuminate\Support\Facades\Route;
 
 // 1. RUTAS PÚBLICAS (No requieren token)
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
-// Autenticación - Logout (requiere token para saber qué token revocar)
-Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
+// Rutas autenticadas para ambos roles (admin y vendedor)
+Route::middleware('auth:sanctum')->group(function () {
+    // Autenticación - Logout (requiere token para saber qué token revocar)
+    Route::post('/logout', [AuthController::class, 'logout']);
 
-// Obtener Usuario Autenticado
-Route::get('/user', [AuthController::class, 'user'])->middleware('auth:sanctum');
+    // Obtener Usuario Autenticado
+    Route::get('/user', [AuthController::class, 'user']);
 
-// Gestión de Usuarios
-Route::apiResource('/usuarios', UserController::class)->middleware('auth:sanctum');
-Route::put('/usuarios/{id}/restore', [UserController::class, 'restore'])->middleware('auth:sanctum');
+    // Gestión de Clientes (CRUD disponible para ambos)
+    Route::apiResource('/clientes', ClienteController::class);
 
-// Gestión de Clientes
-Route::apiResource('/clientes', ClienteController::class)->middleware('auth:sanctum');
+    // Rutas para Avales
+    Route::get('/avales/{id}/has-pending-dues', [AvalController::class, 'hasPendingDues']);
+
+    // Rutas para Cuentas por Cobrar (Consulta y registro de abonos para ambos)
+    Route::get('/cuentas-por-cobrar', [CuentaPorCobrarController::class, 'index']);
+    Route::get('/cuentas-por-cobrar/{id}', [CuentaPorCobrarController::class, 'show']);
+    Route::post('/abonos', [AbonoController::class, 'store']);
+
+    // Gestión de Productos (Consulta para ambos; CRUD restringido por Form Request)
+    Route::get('/productos', [ProductoController::class, 'index']);
+    // Gestión de Categorías (CRUD)
+    Route::apiResource('/categorias', CategoriaController::class);
+    // Ruta específica de bajo stock (debe ir antes de productos/{producto})
+    Route::get('/productos/bajo-stock', [ProductoController::class, 'getBajoStock']);
+
+    Route::get('/productos/{producto}', [ProductoController::class, 'show']);
+
+    // Gestión de Ventas (Registro y consulta para ambos; Actualizar/Eliminar restringido por Form Request)
+    Route::post('/ventas', [VentaController::class, 'store']);
+    Route::get('/ventas', [VentaController::class, 'index']);
+    Route::get('/ventas/{venta}', [VentaController::class, 'show']);
+    Route::get('/ventas/{venta}/imprimir-pos', [VentaController::class, 'imprimirFacturaPos']);
+
+    // Rutas de Caja Diaria (Solo obtener activa para ambos; apertura/cierre restringido por Form Request)
+    Route::prefix('cajas')->controller(CajaDiariaController::class)->group(function () {
+        Route::get('/activa', 'getCajaActiva');
+    });
+
+    // Rutas de Caja Diaria (Apertura y Cierre)
+    Route::prefix('cajas')->controller(CajaDiariaController::class)->group(function () {
+        Route::post('/apertura', 'abrirCaja');
+        Route::post('/{cajaDiaria}/cierre', 'cerrarCaja');
+    });
+
+    // Gestión Financiera (Accessible a vendedores)
+    Route::apiResource('/movimientos-financieros', MovimientoFinancieroController::class);
+    Route::apiResource('/tipo-movimientos-financieros', TipoMovimientoFinancieroController::class);
+
+    // Rutas EXCLUSIVAS PARA ADMINISTRADORES
+    Route::middleware('admin')->group(function () {
+        // Gestión de Usuarios (CRUD Admin-only)
+        Route::apiResource('/usuarios', UserController::class);
+        Route::put('/usuarios/{id}/restore', [UserController::class, 'restore']);
+
+        // Gestión de Productos (CRUD Admin-only; Consulta ya manejada arriba)
+        Route::post('/productos', [ProductoController::class, 'store']);
+        Route::put('/productos/{producto}', [ProductoController::class, 'update']);
+        Route::delete('/productos/{producto}', [ProductoController::class, 'destroy']);
 
 
-// Rutas para Cuentas por Cobrar
-Route::get('/cuentas-por-cobrar', [CuentaPorCobrarController::class, 'index'])->middleware('auth:sanctum');
-Route::get('/cuentas-por-cobrar/{id}', [CuentaPorCobrarController::class, 'show'])->middleware('auth:sanctum');
-// Rutas para Abonos
-Route::post('/abonos', [AbonoController::class, 'store'])->middleware('auth:sanctum');
 
-// Gestión de Productos y Categorías
-Route::apiResource('/categorias', CategoriaController::class)->middleware('auth:sanctum');
-Route::get('/productos/bajo-stock', [ProductoController::class, 'getBajoStock'])->middleware('auth:sanctum');
-Route::apiResource('/productos', ProductoController::class)->middleware('auth:sanctum');
-
-// Gestión de Proveedores
-Route::apiResource('proveedor', ProveedorController::class)->middleware('auth:sanctum');
-Route::apiResource('/pedidos-proveedor', PedidoProveedorController::class)->middleware('auth:sanctum');
+        // Gestión de Proveedores (CRUD Admin-only)
+        Route::apiResource('proveedor', ProveedorController::class);
+        Route::apiResource('/pedidos-proveedor', PedidoProveedorController::class);
 
 
-// Gestión de Ventas y Facturación
-Route::get('/ventas/{venta}/imprimir-pos', [VentaController::class, 'imprimirFacturaPos']);
-Route::apiResource('/ventas', VentaController::class)->middleware('auth:sanctum');
 
-// Gestión Financiera
-Route::apiResource('/movimientos-financieros', MovimientoFinancieroController::class)->middleware('auth:sanctum');
-Route::apiResource('/tipo-movimientos-financieros', TipoMovimientoFinancieroController::class)->middleware('auth:sanctum');
+        // Estadísticas (Admin-only)
+        Route::prefix('estadisticas')->group(function () {
+            Route::get('/ticket-promedio', [EstadisticasController::class, 'getTicketPromedio']);
+            Route::get('/historial-ganancias', [EstadisticasController::class, 'historialGanancias']);
+            Route::get('/productos-bajo-stock', [EstadisticasController::class, 'productosBajoStock']);
+            Route::get('/top-clientes', [EstadisticasController::class, 'topClientes']);
+            Route::get('/top-productos', [EstadisticasController::class, 'topProductosVendidos']);
+            Route::get('/ventas-por-periodo', [EstadisticasController::class, 'getVentasPorPeriodo']);
+            Route::get('/historial-ventas', [EstadisticasController::class, 'historialGanancias']);
+            Route::get('/productos-baja-rotacion', [EstadisticasController::class, 'productosBajaRotacion']);
+            Route::get('/valor-pedidos-proveedores', [EstadisticasController::class, 'valorPedidosProveedores']);
+            Route::get('/top-clientes-frecuencia', [EstadisticasController::class, 'topClientesFrecuencia']);
+            Route::get('/exportar-ventas-excel', [EstadisticasController::class, 'exportarVentasExcel']);
+        });
 
-// Rutas de Caja Diaria
-Route::prefix('cajas')->middleware('auth:sanctum')->controller(CajaDiariaController::class)->group(function () {
-    Route::get('/activa', 'getCajaActiva');
-    Route::post('/apertura', 'abrirCaja');
-    Route::post('/{cajaDiaria}/cierre', 'cerrarCaja');
-});
+        // Gestión de Devoluciones (Admin-only)
+        Route::prefix('devoluciones')->controller(DevolucionController::class)->group(function () {
+            Route::post('/', 'store');
+            Route::get('/pendientes', 'getPendientes');
+            Route::put('/{id}/status', 'updateStatus');
+            Route::get('/', 'index'); // Added index for dev
+            Route::get('/{id}', 'show'); // Added show for dev
+        });
 
-// Estadísticas
-Route::prefix('estadisticas')->middleware('auth:sanctum')->group(function () {
-    Route::get('/ticket-promedio', [EstadisticasController::class, 'getTicketPromedio']);
-    Route::get('/historial-ganancias', [EstadisticasController::class, 'historialGanancias']);
-    Route::get('/productos-bajo-stock', [EstadisticasController::class, 'productosBajoStock']);
-    Route::get('/top-clientes', [EstadisticasController::class, 'topClientes']);
-    Route::get('/top-productos', [EstadisticasController::class, 'topProductosVendidos']);
-    Route::get('/ventas-por-periodo', [EstadisticasController::class, 'getVentasPorPeriodo']);
-    Route::get('/historial-ventas', [EstadisticasController::class, 'historialGanancias']);
-    Route::get('/productos-baja-rotacion', [EstadisticasController::class, 'productosBajaRotacion']); // New
-    Route::get('/valor-pedidos-proveedores', [EstadisticasController::class, 'valorPedidosProveedores']); // New
-    Route::get('/top-clientes-frecuencia', [EstadisticasController::class, 'topClientesFrecuencia']); // New
-    Route::get('/exportar-ventas-excel', [EstadisticasController::class, 'exportarVentasExcel']); // New
-});
-
-// Gestión de Devoluciones
-Route::prefix('devoluciones')->middleware('auth:sanctum')->controller(DevolucionController::class)->group(function () {
-    Route::post('/', 'store'); // POST /api/devoluciones
-    Route::get('/pendientes', 'getPendientes'); // GET /api/devoluciones/pendientes
-    Route::put('/{id}/status', 'updateStatus'); // PUT /api/devoluciones/{id}/status
+        // Venta (actualizar/eliminar solo Admin)
+        Route::put('/ventas/{venta}', [VentaController::class, 'update']);
+        Route::delete('/ventas/{venta}', [VentaController::class, 'destroy']);
+    });
 });
 

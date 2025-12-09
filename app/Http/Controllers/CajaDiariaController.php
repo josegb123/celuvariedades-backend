@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\AbrirCajaRequest;
+use App\Http\Requests\CerrarCajaRequest;
 use App\Models\CajaDiaria;
 use App\Services\CajaDiariaService;
-use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
 use Exception;
 use Illuminate\Support\Facades\Auth;
 
@@ -48,16 +48,11 @@ class CajaDiariaController extends Controller
      * [ENDPOINT] POST /api/cajas/apertura
      * Abre una nueva sesión de caja registrando el fondo inicial.
      */
-    public function abrirCaja(Request $request)
+    public function abrirCaja(AbrirCajaRequest $request)
     {
         try {
-            // Validación de entrada
-            $request->validate([
-                'fondo_inicial' => ['required', 'numeric', 'min:0'],
-            ]);
-
             $userId = Auth::id();
-            $fondoInicial = $request->input('fondo_inicial');
+            $fondoInicial = $request->input('fondo_inicial'); // Cambiado a monto_apertura
 
             $caja = $this->cajaDiariaService->abrirCaja($userId, $fondoInicial);
 
@@ -65,8 +60,6 @@ class CajaDiariaController extends Controller
                 'message' => 'Caja abierta con éxito.',
                 'caja' => $caja
             ], 201); // 201 Creado
-        } catch (ValidationException $e) {
-            return response()->json(['message' => 'Error de validación.', 'errors' => $e->errors()], 422);
         } catch (Exception $e) {
             return response()->json(['message' => $e->getMessage()], 409); // 409 Conflicto
         }
@@ -77,14 +70,9 @@ class CajaDiariaController extends Controller
      * Cierra la sesión de caja, calcula el teórico y registra el físico.
      * Utiliza la inyección de modelo (Route Model Binding).
      */
-    public function cerrarCaja(Request $request, CajaDiaria $cajaDiaria)
+    public function cerrarCaja(CerrarCajaRequest $request, CajaDiaria $cajaDiaria)
     {
         try {
-            // Validación de entrada
-            $request->validate([
-                'monto_cierre_fisico' => ['required', 'numeric', 'min:0'],
-            ]);
-
             // Validación de Permiso: Asegurar que solo el propietario pueda cerrar su caja
             if ($cajaDiaria->user_id !== Auth::id()) {
                 return response()->json(['message' => 'No tienes permiso para cerrar esta caja.'], 403);
@@ -106,8 +94,6 @@ class CajaDiariaController extends Controller
                     'estado' => $cajaCerrada->estado,
                 ]
             ], 200);
-        } catch (ValidationException $e) {
-            return response()->json(['message' => 'Error de validación.', 'errors' => $e->errors()], 422);
         } catch (Exception $e) {
             return response()->json(['message' => $e->getMessage()], 409);
         }

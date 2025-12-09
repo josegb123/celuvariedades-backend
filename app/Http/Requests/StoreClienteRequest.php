@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Auth;
 
 class StoreClienteRequest extends FormRequest
 {
@@ -11,7 +12,8 @@ class StoreClienteRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return auth()->check();
+        $user = Auth::user();
+        return $user && ($user->role === 'administrador' || $user->role === 'admin' || $user->role === 'vendedor');
     }
 
     /**

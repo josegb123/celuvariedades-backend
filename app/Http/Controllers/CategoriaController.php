@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UpdateCategoriaRequest;
 use App\Http\Resources\CategoriaResource;
 use App\Models\Categoria;
 use Illuminate\Http\Request;
@@ -25,67 +26,45 @@ class CategoriaController extends Controller
      * Store a newly created resource in storage.
      * POST /api/categorias
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Http\Requests\StoreCategoriaRequest  $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function store(Request $request)
+    public function store(StoreCategoriaRequest $request)
     {
-        try {
-            // 1. Validar la solicitud
-            $validatedData = $request->validate([
-                'nombre' => 'required|string|max:255|unique:categorias,nombre',
-            ]);
+        // 1. Validar la solicitud (ya manejado por StoreCategoriaRequest)
+        $validatedData = $request->validated();
 
-            // 2. Crear la categoría
-            $categoria = Categoria::create($validatedData);
+        // 2. Crear la categoría
+        $categoria = Categoria::create($validatedData);
 
-            // 3. Responder con el recurso recién creado y un código 201 (Created)
-            return response()->json([
-                'data' => new CategoriaResource($categoria),
-                'message' => 'Categoría creada con éxito.'
-            ], 201);
-
-        } catch (ValidationException $e) {
-            // Manejar errores de validación (código 422 Unprocessable Entity)
-            return response()->json([
-                'message' => 'Los datos proporcionados no son válidos.',
-                'errors' => $e->errors()
-            ], 422);
-        }
+        // 3. Responder con el recurso recién creado y un código 201 (Created)
+        return response()->json([
+            'data' => new CategoriaResource($categoria),
+            'message' => 'Categoría creada con éxito.'
+        ], 201);
     }
 
     /**
      * Update the specified resource in storage.
      * PUT/PATCH /api/categorias/{categoria}
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Http\Requests\UpdateCategoriaRequest  $request
      * @param  \App\Models\Categoria  $categoria
      * @return \Illuminate\Http\JsonResponse
      */
-    public function update(Request $request, Categoria $categoria)
+    public function update(UpdateCategoriaRequest $request, Categoria $categoria)
     {
-        try {
-            // 1. Validar la solicitud (Ignorando el nombre actual de la categoría)
-            $validatedData = $request->validate([
-                'nombre' => 'required|string|max:255|unique:categorias,nombre,' . $categoria->id,
-            ]);
+        // 1. Validar la solicitud (ya manejado por UpdateCategoriaRequest)
+        $validatedData = $request->validated();
 
-            // 2. Actualizar la categoría
-            $categoria->update($validatedData);
+        // 2. Actualizar la categoría
+        $categoria->update($validatedData);
 
-            // 3. Responder con el recurso actualizado y un código 200 (OK)
-            return response()->json([
-                'data' => new CategoriaResource($categoria),
-                'message' => 'Categoría actualizada con éxito.'
-            ], 200);
-
-        } catch (ValidationException $e) {
-            // Manejar errores de validación
-            return response()->json([
-                'message' => 'Los datos proporcionados no son válidos.',
-                'errors' => $e->errors()
-            ], 422);
-        }
+        // 3. Responder con el recurso actualizado y un código 200 (OK)
+        return response()->json([
+            'data' => new CategoriaResource($categoria),
+            'message' => 'Categoría actualizada con éxito.'
+        ], 200);
     }
 
     /**

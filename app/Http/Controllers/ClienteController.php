@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreClienteRequest;
 use App\Http\Requests\UpdateClienteRequest;
+use App\Http\Requests\DeleteClienteRequest; // Added
 use App\Http\Resources\ClienteResource;
 use App\Models\Cliente;
 use Illuminate\Http\Request;
@@ -22,10 +23,11 @@ class ClienteController extends Controller
         $query = Cliente::with('saldos');
 
         // 2. Aplicar la lógica de búsqueda solo si el parámetro 'search' existe.
-        $query->when($search, function ($query, $search) {
-            // Usamos where para la primera condición y orWhere para las subsiguientes
-            $query->where('nombre', 'LIKE', "%{$search}%")
-                ->orWhere('cedula', 'LIKE', "%{$search}%");
+        $query->where(function ($q) use ($search) {
+            $q->where('nombre', 'LIKE', "%{$search}%")
+                ->orWhere('cedula', 'LIKE', "%{$search}%")
+                ->orWhere('email', 'LIKE', "%{$search}%")
+                ->orWhere('telefono', 'LIKE', "%{$search}%");
         });
 
         // 3. Aplicar la paginación a la consulta final.
@@ -87,7 +89,7 @@ class ClienteController extends Controller
      *
      * @param  Cliente  $cliente  (Route Model Binding)
      */
-    public function destroy(Cliente $cliente)
+    public function destroy(DeleteClienteRequest $request, Cliente $cliente) // Modified
     {
         // El Route Model Binding ya inyectó el cliente o lanzó 404
 

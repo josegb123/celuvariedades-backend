@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\RecibirPedidoRequest;
+use App\Http\Requests\StorePedidoProveedorRequest;
 use App\Http\Resources\PedidoProveedorResource;
 use App\Models\PedidoProveedor;
 use App\Services\PedidoProveedorService;
@@ -21,20 +21,21 @@ class PedidoProveedorController extends Controller
 
     /**
      * Store a newly created resource in storage.
+     * POST /api/pedidos-proveedor
      */
-    public function store(RecibirPedidoRequest $request): JsonResponse
+    public function store(StorePedidoProveedorRequest $request): JsonResponse
     {
         try {
-            $pedido = $this->pedidoProveedorService->receiveOrder($request->validated());
+            $pedido = $this->pedidoProveedorService->createPedidoProveedor($request->validated());
 
             return response()->json([
-                'message' => 'Pedido de proveedor recibido exitosamente.',
+                'message' => 'Pedido a proveedor creado exitosamente.',
                 'pedido' => $pedido->load('detalles.producto', 'proveedor', 'user') // Eager load relationships for response
             ], 201);
         } catch (\Exception $e) {
-            Log::error('Error al procesar el pedido de proveedor: ' . $e->getMessage(), ['exception' => $e]);
+            Log::error('Error al crear el pedido a proveedor: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
-                'message' => 'Error al procesar el pedido de proveedor.',
+                'message' => 'Error al crear el pedido a proveedor.',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -70,5 +71,27 @@ class PedidoProveedorController extends Controller
 
         $pedido->load('detalles', 'proveedor', 'user');
         return response()->json($pedido);
+    }
+
+    /**
+     * Update the specified resource in storage.
+     * PUT/PATCH /api/pedidos-proveedor/{pedidoProveedor}
+     */
+    public function update(UpdatePedidoProveedorRequest $request, PedidoProveedor $pedidoProveedor): JsonResponse
+    {
+        try {
+            $pedido = $this->pedidoProveedorService->updatePedidoProveedor($request->validated(), $pedidoProveedor);
+
+            return response()->json([
+                'message' => 'Pedido a proveedor actualizado exitosamente.',
+                'pedido' => $pedido->load('detalles.producto', 'proveedor', 'user')
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('Error al actualizar el pedido a proveedor: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json([
+                'message' => 'Error al actualizar el pedido a proveedor.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

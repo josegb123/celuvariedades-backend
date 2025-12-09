@@ -4,12 +4,14 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Auth;
 
 class StoreAbonoRequest extends FormRequest
 {
   public function authorize(): bool
   {
-    return auth()->check();
+    $user = Auth::user();
+    return $user && ($user->role === 'administrador' || $user->role === 'admin' || $user->role === 'vendedor');
   }
 
   public function rules(): array
@@ -34,10 +36,6 @@ class StoreAbonoRequest extends FormRequest
       'referencia_pago' => 'nullable|string|max:100', //referencia externa de otro sistema de pago, como nequi o transferencia bancaria, con el fin de trazar el origen del pago
     ];
   }
-
-  /**
-   * Eliminamos prepareForValidation ya que ya no se usa el ID de la URL.
-   */
 
   public function messages(): array
   {

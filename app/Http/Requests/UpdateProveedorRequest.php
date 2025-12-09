@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Auth; // Añadido
 
 class UpdateProveedorRequest extends FormRequest
 {
@@ -12,8 +13,7 @@ class UpdateProveedorRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        //solo usuarios autenticados pueden actualizar proveedores
-        return auth()->check();
+        return Auth::user()->role === 'admin';
     }
 
     /**
