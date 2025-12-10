@@ -77,7 +77,7 @@ class PedidoProveedorController extends Controller
      * Update the specified resource in storage.
      * PUT/PATCH /api/pedidos-proveedor/{pedidoProveedor}
      */
-    public function update(UpdatePedidoProveedorRequest $request, PedidoProveedor $pedidoProveedor): JsonResponse
+    public function update(StorePedidoProveedorRequest $request, PedidoProveedor $pedidoProveedor): JsonResponse
     {
         try {
             $pedido = $this->pedidoProveedorService->updatePedidoProveedor($request->validated(), $pedidoProveedor);

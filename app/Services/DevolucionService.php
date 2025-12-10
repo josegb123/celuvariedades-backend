@@ -30,12 +30,14 @@ class DevolucionService
 
     /**
      * Anula una venta completa (Soft Delete y reversión total de inventario, cartera y caja).
+     *
      * @param Venta $venta Venta a anular.
      * @param string $motivo Motivo de la anulación (e.g., "Error de registro").
+     * @param string $metodoReembolso Si es venta de contado: 'Efectivo', 'Transferencia', o 'SaldoCliente' (por defecto).
      */
-    public function anularVenta(Venta $venta, string $motivo = "Anulación completa de venta"): Venta
+    public function anularVenta(Venta $venta, string $motivo = "Anulación completa de venta", string $metodoReembolso = 'SaldoCliente'): Venta
     {
-        return DB::transaction(function () use ($venta, $motivo) {
+        return DB::transaction(function () use ($venta, $motivo, $metodoReembolso) {
             if ($venta->estado === 'cancelada') {
                 throw new Exception("La venta ID {$venta->id} ya está cancelada.");
             }
@@ -47,20 +49,32 @@ class DevolucionService
 
             // 2. Gestión de Cartera y Caja
             if ($venta->cuentaPorCobrar) {
-                // Maneja la deuda y el posible reembolso de abonos
+                // Maneja la deuda y genera SaldoCliente por el total de abonos
                 $this->anularCuentaPorCobrar($venta->cuentaPorCobrar, $venta->cliente_id);
             } else {
-                // Venta de Contado: Genera un egreso (reembolso) por el monto total.
-                $montoReembolsar = $venta->monto_total;
+                // Venta de Contado: Se reembolsa o genera saldo por el monto total.
+                $montoReembolsar = $venta->total;
+
                 if ($montoReembolsar > 0) {
-                    $this->registrarEgreso(
-                        $montoReembolsar,
-                        'Reembolso a Cliente',
-                        'Efectivo', // Asumido
-                        "Anulación total Venta #{$venta->id} (Contado)",
-                        'ventas',
-                        $venta->id
-                    );
+                    if ($metodoReembolso === 'Efectivo' || $metodoReembolso === 'Transferencia') {
+                        // Reembolso en efectivo/transferencia solicitado
+                        $this->registrarEgreso(
+                            $montoReembolsar,
+                            'Reembolso a Cliente',
+                            $metodoReembolso,
+                            "Anulación total Venta #{$venta->id} (Contado)",
+                            'ventas',
+                            $venta->id
+                        );
+                    } else {
+                        // Por defecto: Genera Saldo Cliente (Nota Crédito)
+                        $this->generarSaldoCliente(
+                            monto: $montoReembolsar,
+                            clienteId: $venta->cliente_id ?? self::ID_CLIENTE_GENERICO,
+                            motivo: "Nota Crédito por Anulación Total Venta #{$venta->id} (Contado)",
+                            ventaId: $venta->id
+                        );
+                    }
                 }
             }
 
@@ -79,16 +93,16 @@ class DevolucionService
 
     /**
      * Procesa la devolución parcial de productos de una venta.
+     *
      * @param Venta $venta Venta original.
      * @param array $itemsDevueltos Array de ['detalle_venta_id' => int, 'cantidad' => float, 'motivo' => string]
-     * @param string $metodoReembolso Método de pago usado para el egreso (ej: 'Transferencia', 'Efectivo').
+     * @param string $metodoReembolso Método de pago/gestión usado: 'Efectivo', 'Transferencia', o 'SaldoCliente' (por defecto).
      * @return Venta Venta actualizada.
      */
-    public function procesarDevolucionParcial(Venta $venta, array $itemsDevueltos, string $metodoReembolso = 'Efectivo'): Venta
+    public function procesarDevolucionParcial(Venta $venta, array $itemsDevueltos, string $metodoReembolso = 'SaldoCliente'): Venta
     {
         return DB::transaction(function () use ($venta, $itemsDevueltos, $metodoReembolso) {
 
-            // Determinar el cliente para el registro de auditoría (fallback al genérico)
             $clienteIdParaRegistro = $venta->cliente_id ?? self::ID_CLIENTE_GENERICO;
 
             if ($venta->estado === 'cancelada') {
@@ -98,11 +112,11 @@ class DevolucionService
             $montoTotalDevuelto = 0;
 
             foreach ($itemsDevueltos as $item) {
+                // ... (Validación y creación de Devolucion, Reversión de Inventario, Actualización de DetalleVenta) ...
+
                 $detalleId = $item['detalle_venta_id'];
                 $cantidadDevuelta = (float) $item['cantidad'];
                 $motivoDevolucion = $item['motivo'] ?? 'Devolución Parcial';
-
-
                 $detalle = DetalleVenta::findOrFail($detalleId);
 
                 // Validación de cantidad
@@ -127,17 +141,10 @@ class DevolucionService
                 ]);
 
                 // 3. Actualizar el detalle de la venta (MODELO NETO para estadísticas)
-
-                // Acumular la cantidad devuelta (Auditoría)
                 $detalle->cantidad_devuelta += $cantidadDevuelta;
-
-                // REDUCIR LA CANTIDAD VENDIDA RESTANTE (Neto)
                 $detalle->cantidad -= $cantidadDevuelta;
-
-                // Actualizar subtotal basado en la nueva cantidad neta
                 $detalle->subtotal = $detalle->cantidad * $detalle->precio_unitario;
 
-                // Actualizar estado del detalle
                 if ($detalle->cantidad <= 0.01) {
                     $detalle->estado = 'devuelta';
                     $detalle->cantidad = 0;
@@ -152,33 +159,38 @@ class DevolucionService
             }
 
 
-            // 5. Gestión Financiera: REGISTRO DEL EGRESO
+            // 5. Gestión Financiera: REGISTRO DEL EGRESO o SALDO CLIENTE
             if ($montoTotalDevuelto > 0) {
                 if ($venta->cuentaPorCobrar) {
-                    // Venta a Crédito: Reduce la deuda o crea SaldoCliente (Nota Crédito)
+                    // Venta a Crédito: Reduce la deuda o genera SaldoCliente si hay excedente
                     $this->reducirCuentaPorCobrar($venta->cuentaPorCobrar, $montoTotalDevuelto);
-                } else {
-                    // Venta de Contado: Registra un EGRESO de caja (Reembolso en efectivo)
+                } elseif ($metodoReembolso === 'Efectivo' || $metodoReembolso === 'Transferencia') {
+                    // Venta de Contado: Registra un EGRESO de caja (Reembolso en efectivo/transferencia)
                     $this->registrarEgreso(
                         $montoTotalDevuelto,
                         'Reembolso a Cliente',
                         $metodoReembolso,
-                        "Devolución de detalle #{$detalle->id} - Venta #{$venta->id} ", // Descripción genérica para parcial/total
+                        "Devolución parcial Venta #{$venta->id} ",
                         'ventas',
                         $venta->id
                     );
-
+                } else {
+                    // Venta de Contado: Genera Saldo Cliente (Nota Crédito) por defecto
+                    $this->generarSaldoCliente(
+                        monto: $montoTotalDevuelto,
+                        clienteId: $venta->cliente_id ?? self::ID_CLIENTE_GENERICO,
+                        motivo: "Nota Crédito por Devolución Parcial Venta #{$venta->id}",
+                        ventaId: $venta->id
+                    );
                 }
             }
 
-            // 6. Actualizar estado y monto total de la venta
-            $venta->load('detalles');
+            // 6. Actualizar estado y monto total de la venta            
 
-            // Recalcular el monto total sumando los subtotales netos restantes
+            $venta->load('detalles');
             $nuevoMontoTotal = $venta->detalles->sum('subtotal');
             $venta->total = $nuevoMontoTotal;
 
-            // Verificar si todos los ítems fueron devueltos (cantidad remanente = 0)
             $esDevolucionTotal = $venta->detalles->every(function (DetalleVenta $detalle) {
                 return $detalle->cantidad <= 0.01;
             });
@@ -216,21 +228,21 @@ class DevolucionService
     }
 
     /**
-     * Anula la cuenta por cobrar y gestiona el reembolso de abonos.
+     * Anula la cuenta por cobrar y gestiona el reembolso de abonos generando SaldoCliente.
      */
     protected function anularCuentaPorCobrar(CuentaPorCobrar $cuentaPorCobrar, int $clienteId): CuentaPorCobrar
     {
         $montoAbonadoTotal = $cuentaPorCobrar->abonos->sum('monto_abonado');
 
         if ($montoAbonadoTotal > 0) {
-            // 1. REEMBOLSO DE CAJA: Egreso directo de los abonos.
-            $this->registrarEgreso(
-                $montoAbonadoTotal,
-                'Reembolso de Abonos',
-                'Transferencia',
-                "Anulación Venta #{$cuentaPorCobrar->venta_id}. Abonos: {$montoAbonadoTotal}",
-                'cuentas_por_cobrar',
-                $cuentaPorCobrar->id
+            // 1. CREAR SALDO A FAVOR (NOTA CRÉDITO) por el total abonado
+            $clienteIdParaSaldo = $cuentaPorCobrar->venta->cliente_id ?? self::ID_CLIENTE_GENERICO;
+
+            $this->generarSaldoCliente(
+                monto: $montoAbonadoTotal,
+                clienteId: $clienteIdParaSaldo,
+                motivo: "Nota Crédito por Anulación Total Venta #{$cuentaPorCobrar->venta_id}. Monto Abonado: {$montoAbonadoTotal}",
+                ventaId: $cuentaPorCobrar->venta_id
             );
         }
 
@@ -244,42 +256,55 @@ class DevolucionService
     }
 
     /**
-     * Reduce el monto pendiente de una Cuenta por Cobrar debido a una devolución.
+     * Reduce el monto pendiente de una Cuenta por Cobrar debido a una devolución y gestiona excedentes.
      */
     protected function reducirCuentaPorCobrar(CuentaPorCobrar $cuentaPorCobrar, float $montoDevuelto): CuentaPorCobrar
     {
-        if ($cuentaPorCobrar->estado !== 'pendiente') {
-            throw new Exception("La cuenta por cobrar ID {$cuentaPorCobrar->id} no está activa.");
+        if ($cuentaPorCobrar->estado !== 'Pendiente') {
+            throw new Exception("La cuenta por cobrar ID {$cuentaPorCobrar->id} no está activa. Estado: {$cuentaPorCobrar->estado}");
         }
 
         $cuentaPorCobrar->monto_pendiente -= $montoDevuelto;
 
+        // 1. Si la cuenta queda saldada por la devolución (monto pendiente ~ 0)
         if ($cuentaPorCobrar->monto_pendiente <= 0.01) {
             $cuentaPorCobrar->monto_pendiente = 0.00;
-            $cuentaPorCobrar->estado = 'pagada';
+            $cuentaPorCobrar->estado = 'Pagada';
+        }
+
+        // 2. LÓGICA DE SALDO A FAVOR (Nota Crédito) - si la devolución excede el saldo pendiente
+        if ($cuentaPorCobrar->monto_pendiente < 0) {
+            $saldoAFavor = abs($cuentaPorCobrar->monto_pendiente);
+
+            $this->generarSaldoCliente(
+                monto: $saldoAFavor,
+                clienteId: $cuentaPorCobrar->venta->cliente_id ?? self::ID_CLIENTE_GENERICO,
+                motivo: "Excedente de Nota Crédito por Devolución Parcial Venta #{$cuentaPorCobrar->venta_id}",
+                ventaId: $cuentaPorCobrar->venta_id
+            );
+
+            // Resetear la cuenta por cobrar a cero
+            $cuentaPorCobrar->monto_pendiente = 0.00;
+            $cuentaPorCobrar->estado = 'Pagada (Con Saldo a Favor)';
         }
 
         $cuentaPorCobrar->save();
-
-        // Saldo a favor (monto pendiente negativo):
-        if ($cuentaPorCobrar->monto_pendiente < 0) {
-            $saldoAFavor = abs($cuentaPorCobrar->monto_pendiente);
-            $clienteIdParaSaldo = $cuentaPorCobrar->venta->cliente_id ?? self::ID_CLIENTE_GENERICO;
-            SaldoCliente::create([
-                'cliente_id' => $clienteIdParaSaldo,
-                'cuenta_por_cobrar_id' => $cuentaPorCobrar->id,
-                'monto_original' => $saldoAFavor,
-                'monto_pendiente' => $saldoAFavor,
-                'estado' => 'Activo',
-                'motivo' => "Excedente de Nota Crédito por Devolución Parcial Venta #{$cuentaPorCobrar->venta_id}",
-            ]);
-
-            $cuentaPorCobrar->monto_pendiente = 0.00;
-            $cuentaPorCobrar->estado = 'pagada (Con Saldo a Favor)';
-            $cuentaPorCobrar->save();
-        }
-
         return $cuentaPorCobrar;
+    }
+
+    /**
+     * Genera un SaldoCliente (Nota Crédito) por el monto especificado.
+     */
+    protected function generarSaldoCliente(float $monto, int $clienteId, string $motivo, int $ventaId): void
+    {
+        SaldoCliente::create([
+            'cliente_id' => $clienteId,
+            'venta_id' => $ventaId,
+            'monto_original' => $monto,
+            'monto_pendiente' => $monto,
+            'estado' => 'Activo',
+            'motivo' => $motivo,
+        ]);
     }
 
     /**
@@ -300,7 +325,6 @@ class DevolucionService
             ->value('id');
 
         if (is_null($caja_diaria_id)) {
-            // Deberías decidir si esto es un error fatal o solo una advertencia
             Log::warning('No se pudo asociar Movimiento Financiero a Caja Diaria activa para el usuario: ' . auth()->id());
         }
 

@@ -108,6 +108,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Gestión de Devoluciones (Admin-only)
         Route::prefix('devoluciones')->controller(DevolucionController::class)->group(function () {
             Route::post('/', 'store');
+            Route::post('/anular-venta/{ventaId}', 'anularVenta');
             Route::get('/pendientes', 'getPendientes');
             Route::put('/{id}/status', 'updateStatus');
             Route::get('/', 'index'); // Added index for dev

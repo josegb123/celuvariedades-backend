@@ -22,7 +22,7 @@ class DevolucionController extends Controller
     }
 
     /**
-     * Registra una nueva devolución de productos, delegando la lógica de negocio al servicio.
+     * Registra una nueva devolución de productos (parcial), delegando la lógica de negocio al servicio.
      *
      * @param  \App\Http\Requests\StoreDevolucionRequest  $request
      * @return \Illuminate\Http\JsonResponse
@@ -34,7 +34,7 @@ class DevolucionController extends Controller
 
             $venta = Venta::findOrFail($validatedData['venta_id']);
 
-            // 1. CHEQUEO DE ESTADO (Validación)
+            // 1. CHEQUEO DE ESTADO (Validación básica)
             if ($venta->estado === 'cancelada' || $venta->estado === 'reembolsada') {
                 return response()->json([
                     'message' => 'Error: La venta ya fue cancelada/reembolsada y no acepta devoluciones.',
@@ -42,31 +42,81 @@ class DevolucionController extends Controller
             }
 
             // 2. DELEGACIÓN DE LÓGICA DE NEGOCIO (El servicio maneja la transacción DB)
+            // Usamos 'SaldoCliente' como método de reembolso por defecto si no viene especificado.
+            $metodoReembolso = $validatedData['metodo_reembolso'] ?? 'SaldoCliente';
+
             $ventaActualizada = $this->devolucionService->procesarDevolucionParcial(
                 venta: $venta,
                 itemsDevueltos: $validatedData['items_devueltos'],
-                metodoReembolso: $validatedData['metodo_reembolso'] ?? 'Efectivo'
+                metodoReembolso: $metodoReembolso
             );
 
             // 3. RESPUESTA
-            // Cargamos las devoluciones recién creadas si las necesitamos para el response
+            // Cargamos las devoluciones de auditoría recién creadas
             $nuevasDevoluciones = Devolucion::where('venta_id', $venta->id)
                 ->where('created_at', '>=', now()->subSeconds(5))
+                ->with([
+                    'producto',
+                    'cliente',
+                    'detalleVenta',
+                    'venta.cuentaPorCobrar' // <-- Necesario para inferir la gestión financiera
+                ])
                 ->get();
 
             return response()->json([
-                'message' => 'Devolución procesada exitosamente. Estado de venta: ' . $ventaActualizada->estado,
+                'message' => 'Devolución parcial procesada exitosamente. Se aplicó: ' . ($metodoReembolso === 'SaldoCliente' ? 'Nota Crédito/Saldo Cliente.' : 'Egreso de Caja.'),
                 'venta_id' => $ventaActualizada->id,
                 'nuevo_estado' => $ventaActualizada->estado,
                 'devoluciones_creadas' => DevolucionResource::collection($nuevasDevoluciones)
             ], 201);
 
         } catch (\Exception $e) {
-            Log::error('Error al procesar la devolución: ' . $e->getMessage(), ['exception' => $e, 'request_data' => $request->all()]);
-            // El servicio lanzará la excepción, la cual revierte la transacción.
-            return response()->json(['message' => 'Error al procesar la devolución: ' . $e->getMessage()], 500);
+            Log::error('Error al procesar la devolución parcial: ' . $e->getMessage(), ['exception' => $e, 'request_data' => $request->all()]);
+            return response()->json(['message' => 'Error al procesar la devolución parcial: ' . $e->getMessage()], 500);
         }
     }
+
+    /**
+     * Anula una venta completa, revirtiendo todas las transacciones asociadas (Inventario, Cartera, Caja).
+     *
+     * @param  \Illuminate\Http\Request  $request Debe incluir 'motivo' y, opcionalmente, 'metodo_reembolso'.
+     * @param  int  $ventaId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function anularVenta(Request $request, int $ventaId)
+    {
+        $request->validate([
+            'motivo' => ['required', 'string', 'max:255'],
+            // Validar que el método de reembolso, si existe, sea válido
+            'metodo_reembolso' => ['nullable', 'string', 'in:Efectivo,Transferencia,SaldoCliente'],
+        ]);
+
+        try {
+            $venta = Venta::findOrFail($ventaId);
+
+            $motivo = $request->input('motivo');
+            $metodoReembolso = $request->input('metodo_reembolso', 'SaldoCliente'); // SaldoCliente por defecto
+
+            $ventaAnulada = $this->devolucionService->anularVenta(
+                venta: $venta,
+                motivo: $motivo,
+                metodoReembolso: $metodoReembolso
+            );
+
+            $mensajeReembolso = $metodoReembolso === 'SaldoCliente' ? 'Se generó una Nota Crédito/Saldo Cliente.' : "Se registró un egreso de caja por {$metodoReembolso}.";
+
+            return response()->json([
+                'message' => "Venta ID {$ventaId} anulada y revertida exitosamente. {$mensajeReembolso}",
+                'venta_id' => $ventaAnulada->id,
+                'nuevo_estado' => $ventaAnulada->estado,
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Error al anular la venta: ' . $e->getMessage(), ['exception' => $e, 'venta_id' => $ventaId]);
+            return response()->json(['message' => 'Error al anular la venta: ' . $e->getMessage()], 500);
+        }
+    }
+
 
     /**
      * Obtiene todos los registros de Devolucion con estado_gestion = 'Pendiente',
