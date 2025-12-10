@@ -183,7 +183,7 @@ class VentaService
                 if ($abonoInicial > 0) {
                     $this->movimientoFinancieroService->registrarMovimiento(
                         monto: $abonoInicial,
-                        tipoMovimientoNombre: 'Abono Inicial Venta a Cartera',
+                        tipoMovimientoNombre: 'Abono inicial para la venta',
                         descripcion: "Abono inicial para la venta ID {$venta->id}",
                         metodoPago: $venta->metodo_pago, // Usar el método de pago de la venta
                         ventaId: $venta->id,
