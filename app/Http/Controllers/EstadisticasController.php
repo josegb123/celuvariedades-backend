@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Barryvdh\DomPDF\Facade\Pdf; // Added for PDF generation
 use App\Models\DetalleVenta;
 use App\Models\Producto;
 use App\Models\Venta;
@@ -24,6 +25,68 @@ class EstadisticasController extends Controller
     {
         $periodo = $request->input('periodo', 'month'); // Default to 'month'
         return Excel::download(new VentasExport($periodo), 'ventas_agrupadas_' . $periodo . '.xlsx');
+    }
+
+    /**
+     * Exporta las ventas agrupadas a un archivo PDF.
+     * @param Request $request
+     * @return \Illuminate\Http\Response
+     */
+    public function exportarVentasPdf(Request $request)
+    {
+        $periodo = $request->input('periodo', 'month'); // Default to 'month'
+
+        $dateFormat = match ($periodo) {
+            'day' => '%Y-%m-%d',
+            'year' => '%Y',
+            default => '%Y-%m', // month
+        };
+
+        // 1. Obtener ventas totales por periodo (same logic as VentasExport)
+        $ventasPorPeriodo = Venta::query()
+            ->where('estado', 'finalizada')
+            ->select(
+                DB::raw("DATE_FORMAT(created_at, '{$dateFormat}') as periodo_fecha"),
+                DB::raw('SUM(total) as ventas_totales')
+            )
+
+            ->groupBy('periodo_fecha')
+            ->orderBy('periodo_fecha')
+            ->get()
+            ->keyBy('periodo_fecha');
+
+        // 2. Obtener beneficio por periodo (same logic as VentasExport)
+        $beneficioPorPeriodo = DetalleVenta::query()
+            ->join('ventas', 'detalle_ventas.venta_id', '=', 'ventas.id')
+            ->where('ventas.estado', 'finalizada')
+            ->select(
+                DB::raw("DATE_FORMAT(ventas.created_at, '{$dateFormat}') as periodo_fecha"),
+                DB::raw('SUM((precio_unitario - precio_costo) * cantidad) as beneficio')
+            )
+            ->groupBy('periodo_fecha')
+            ->orderBy('periodo_fecha')
+            ->get()
+            ->keyBy('periodo_fecha');
+
+        // 3. Combinar los resultados (same logic as VentasExport)
+        $ventasData = $ventasPorPeriodo->map(function ($item) use ($beneficioPorPeriodo) {
+            $beneficio = $beneficioPorPeriodo[$item->periodo_fecha]->beneficio ?? 0;
+            return [
+                'periodo_fecha' => $item->periodo_fecha,
+                'ventas_totales' => (float) $item->ventas_totales,
+                'beneficio' => (float) $beneficio,
+            ];
+        });
+
+        $periodoAnalisis = match ($periodo) {
+            'day' => 'Diario',
+            'month' => 'Mensual',
+            'year' => 'Anual',
+            default => 'Mensual',
+        };
+
+        $pdf = Pdf::loadView('exports.ventas_pdf', compact('ventasData', 'periodoAnalisis'));
+        return $pdf->download('reporte_ventas_' . $periodo . '.pdf');
     }
 
     /**
@@ -386,5 +449,40 @@ class EstadisticasController extends Controller
         return response()->json([
             'data' => $margenHistorico,
         ]);
+    }
+
+    /**
+     * Obtiene el total de ventas agrupadas por categoría de producto.
+     * @return JsonResponse
+     */
+    public function ventasPorCategoria(): JsonResponse
+    {
+        try {
+            $ventasPorCategoria = DetalleVenta::query()
+                ->join('ventas', 'detalle_ventas.venta_id', '=', 'ventas.id')
+                ->join('productos', 'detalle_ventas.producto_id', '=', 'productos.id')
+                ->join('categorias', 'productos.categoria_id', '=', 'categorias.id')
+                ->where(function ($query) {
+                    $query->where('ventas.estado', 'finalizada')
+                        ->orWhere('ventas.estado', 'parcialmente devuelta');
+                })
+                ->select(
+                    'categorias.nombre as categoria_nombre',
+                    DB::raw('CAST(SUM(detalle_ventas.cantidad) AS UNSIGNED) as total_unidades_vendidas'),
+                    DB::raw('CAST(SUM(detalle_ventas.cantidad * detalle_ventas.precio_unitario) AS DECIMAL(10, 2)) as total_ventas_categoria')
+                )
+                ->groupBy('categorias.nombre')
+                ->orderByDesc('total_ventas_categoria')
+                ->get();
+
+            return response()->json([
+                'data' => $ventasPorCategoria,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'No se pudo obtener el reporte de Ventas por Categoría.',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 }

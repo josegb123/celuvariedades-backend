@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\RecibirPedidoRequest;
 use App\Http\Requests\StorePedidoProveedorRequest;
 use App\Http\Resources\PedidoProveedorResource;
 use App\Models\PedidoProveedor;
@@ -23,7 +24,7 @@ class PedidoProveedorController extends Controller
      * Store a newly created resource in storage.
      * POST /api/pedidos-proveedor
      */
-    public function store(StorePedidoProveedorRequest $request): JsonResponse
+    public function store(RecibirPedidoRequest $request): JsonResponse
     {
         try {
             $pedido = $this->pedidoProveedorService->createPedidoProveedor($request->validated());

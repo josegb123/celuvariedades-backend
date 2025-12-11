@@ -102,7 +102,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/productos-baja-rotacion', [EstadisticasController::class, 'productosBajaRotacion']);
             Route::get('/valor-pedidos-proveedores', [EstadisticasController::class, 'valorPedidosProveedores']);
             Route::get('/top-clientes-frecuencia', [EstadisticasController::class, 'topClientesFrecuencia']);
+            Route::get('/ventas-por-categoria', [EstadisticasController::class, 'ventasPorCategoria']);
             Route::get('/exportar-ventas-excel', [EstadisticasController::class, 'exportarVentasExcel']);
+            Route::get('/exportar-ventas-pdf', [EstadisticasController::class, 'exportarVentasPdf']);
         });
 
         // Gestión de Devoluciones (Admin-only)
