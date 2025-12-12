@@ -27,6 +27,10 @@ class ClienteResource extends JsonResource
 
                 return SaldoClienteResource::collection($this->saldos);
             }),
+            'deudas' => $this->whenLoaded('cuentasPorCobrar', function () {
+
+                return CuentaPorCobrarResource::collection($this->cuentasPorCobrar);
+            })
         ];
     }
 }

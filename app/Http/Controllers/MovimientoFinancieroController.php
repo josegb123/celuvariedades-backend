@@ -78,6 +78,7 @@ class MovimientoFinancieroController extends Controller
                 descripcion: $validatedData['descripcion'],
                 referenciaTabla: $referenciaTabla,
                 referenciaId: $referenciaId,
+                cajaDiariaId: $validatedData['caja_diaria_id'] ?? null,
 
             );
 

@@ -214,7 +214,7 @@ class EstadisticasController extends Controller
                 'nombre_cliente' => $item->cliente->nombre ?? 'Consumidor Final',
                 'email_cliente' => $item->cliente->email ?? null,
                 'numero_compras_en_periodo' => (int) $item->numero_compras_en_periodo,
-                'ultima_compra' => $item->ultima_compra ? $item->ultima_compra->toDateTimeString() : null,
+                'ultima_compra' => $item->ultima_compra ? $item->ultima_compra : null,
             ];
         });
 

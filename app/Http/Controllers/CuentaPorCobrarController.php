@@ -3,9 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\CuentaPorCobrar;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
+use App\Http\Resources\CuentaPorCobrarResource;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class CuentaPorCobrarController extends Controller
 {
@@ -18,7 +19,8 @@ class CuentaPorCobrarController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = CuentaPorCobrar::query()
-            ->with(['cliente']) // Cargamos solo el cliente para el resumen de la tabla
+            // Cargamos solo el cliente para el resumen de la tabla (N+1 prevention)
+            ->with(['cliente'])
             ->orderBy('fecha_vencimiento', 'asc');
 
         // 1. FILTRO DE ESTADO
@@ -35,22 +37,27 @@ class CuentaPorCobrarController extends Controller
         if ($request->filled('search')) {
             $searchTerm = $request->input('search');
             $query->whereHas('cliente', function (Builder $q) use ($searchTerm) {
+                // Asumo que el cliente tiene campos 'nombre' y 'ruc_ci' o 'cedula'
                 $q->where('nombre', 'like', "%{$searchTerm}%")
                     ->orWhere('ruc_ci', 'like', "%{$searchTerm}%");
             });
         }
 
-        // Excluir cuentas saldadas por defecto a menos que se pida 'Saldada'
-        if ($request->input('estado') !== 'Saldada') {
-            $query->where('estado', '!=', 'Saldada');
-        }
-
         // Aplicar paginación (ej: 15 elementos por página)
         $cuentas = $query->paginate($request->input('per_page', 15));
 
-        return response()->json($cuentas);
+        // *** INTEGRACIÓN DEL RESOURCE ***
+        // Usamos collection para manejar la paginación y formatear cada item.
+        return CuentaPorCobrarResource::collection($cuentas)->response();
+        // **********************************
     }
 
+    /**
+     * Obtiene el detalle completo de una cuenta por cobrar, incluyendo relaciones.
+     *
+     * @param int $id
+     * @return JsonResponse
+     */
     /**
      * Obtiene el detalle completo de una cuenta por cobrar, incluyendo relaciones.
      *

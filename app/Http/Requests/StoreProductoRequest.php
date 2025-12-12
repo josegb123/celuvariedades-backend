@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Auth;
 
 class StoreProductoRequest extends FormRequest
 {
@@ -22,6 +23,7 @@ class StoreProductoRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'id' => 'nullable|integer|min:1',
             'categoria_id' => ['sometimes', 'required', 'exists:categorias,id'],
             'user_id' => ['sometimes', 'required', 'exists:users,id'],
             'codigo_barra' => 'nullable|string|max:255|unique:productos,codigo_barra',

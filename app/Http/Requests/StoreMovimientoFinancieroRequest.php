@@ -50,6 +50,7 @@ class StoreMovimientoFinancieroRequest extends FormRequest
             'user_id' => ['required', 'integer', 'exists:users,id'],
             'referencia_tabla' => 'nullable|string|max:50',
             'referencia_id' => 'nullable|integer',
+            'caja_diaria_id' => 'required|integer',
         ];
     }
 

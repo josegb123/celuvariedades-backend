@@ -20,7 +20,7 @@ class ClienteController extends Controller
         // 1. Obtener el término de búsqueda de la solicitud.
         $search = $request->get('search');
 
-        $query = Cliente::with('saldos');
+        $query = Cliente::with('saldos', 'cuentasPorCobrar');
 
         // 2. Aplicar la lógica de búsqueda solo si el parámetro 'search' existe.
         $query->where(function ($q) use ($search) {
@@ -56,7 +56,7 @@ class ClienteController extends Controller
      */
     public function show(Cliente $cliente)
     {
-        $query = Cliente::with('saldos')->find($cliente->id);
+        $query = Cliente::with('saldos', 'cuentasPorCobrar')->find($cliente->id);
 
         // El Route Model Binding ya inyectó el cliente o lanzó 404
         return new ClienteResource($query);
