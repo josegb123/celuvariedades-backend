@@ -24,7 +24,8 @@ class StoreMovimientoFinancieroRequest extends FormRequest
     {
         $tiposPermitidos = [
             'Venta de Productos',
-            'Abono a Cartera',
+            'Abono inical a venta',
+            'Abono a deuda',
             'Ingreso Operacional Vario',
             'Compra de Productos',
             'Gasto Operacional Vario',

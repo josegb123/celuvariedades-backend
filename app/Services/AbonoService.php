@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\AbonoCartera;
 use App\Models\CajaDiaria;
+use App\Models\Cliente;
 use App\Models\CuentaPorCobrar;
 use Illuminate\Support\Facades\DB;
 use Exception;
@@ -44,18 +45,30 @@ class AbonoService
         userId: $validatedData['user_id'],
         referenciaPago: $validatedData['referencia_pago'] ?? ""
       );
+      // 1. Asignamos el valor de 'tipo_abono', usando 'a_deuda' como valor por defecto si no existe o es null.
+      $tipoAbono = $validatedData['tipo_abono'] ?? 'a_deuda';
 
+      // 2. Usamos el valor normalizado en el condicional.
+      if ($tipoAbono === 'inicial') {
+        $tipoMovimientoNombre = "Abono inicial a venta";
+      } else {
+        // Esto cubrirá 'a_deuda' (el valor por defecto) y cualquier otro valor que no sea 'inicial'.
+        $tipoMovimientoNombre = "Abono a deuda";
+      }
 
-      $descripcionMovimiento = "Abono a Cartera de Cliente ID {$cuenta->cliente_id} por Venta ID {$cuenta->venta_id}";
+      $cliente = Cliente::findOrFail($cuenta->cliente_id)->nombre;
+
+      $descripcionMovimiento = "{$tipoMovimientoNombre} por {$cliente}  a Venta ID {$cuenta->venta_id}";
+
       // 2. GESTIÓN FINANCIERA (CAJA/BANCO)
       // Llama al servicio financiero para registrar la entrada de dinero.
       $this->movimientoFinancieroService->registrarMovimiento(
         monto: $abono->monto_abonado,
-        tipoMovimientoNombre: 'Abono a Cartera',
+        tipoMovimientoNombre: $tipoMovimientoNombre,
         metodoPago: $abono->metodo_pago,
         userId: $abono->user_id,
         descripcion: $descripcionMovimiento,
-        referenciaTabla: 'abono_carteras',
+        referenciaTabla: $tipoMovimientoNombre,
         referenciaId: $abono->id,
         ventaId: $cuenta->venta_id,
         cajaDiariaId: $validatedData['caja_diaria_id'] ?? null

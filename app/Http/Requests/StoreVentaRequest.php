@@ -25,9 +25,26 @@ class StoreVentaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // --- Cabecera de la Venta ---
+
             // cliente_id: Puede ser nulo si es una venta POS a consumidor final (C/F).
-            'cliente_id' => 'nullable|exists:clientes,id',
+            'cliente_id' => [
+                'nullable',
+                'integer',
+                'exists:clientes,id',
+                // Aplicamos las reglas más estrictas SOLO si se requiere el cliente (crédito/plan separe)
+                Rule::when(
+                    in_array($this->input('metodo_pago'), ['credito', 'plan_separe']),
+                    [
+                        'required', // Si es crédito/plan separe, es obligatorio.
+                        'not_in:0', // Y si es obligatorio, no puede ser 0.
+                    ],
+                    // Si NO es crédito/plan separe (ej. efectivo), permitimos que el ID sea 0.
+                    [
+                        // Reglas adicionales de ser necesario
+                    ]
+                ),
+
+            ],
 
             // tipo_venta_id: CRÍTICO. Debe existir en una tabla de catálogo (Contado, Crédito, etc.)
             'tipo_venta_id' => 'required|exists:tipo_ventas,id',
@@ -79,6 +96,8 @@ class StoreVentaRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'cliente_id.required' => 'El cliente es obligatorio para el método de pago :attribute. Por favor, selecciona un cliente o cambia el método de pago.',
+            'cliente_id.exists' => 'El cliente seleccionado no es válido o no existe.',
             'tipo_venta_id.required' => 'Debe especificar el tipo de venta (Contado, Crédito, etc.).',
             'items.required' => 'La venta debe contener al menos un producto.',
             'items.*.producto_id.exists' => 'El ID del producto (:input) en el ítem no existe.',

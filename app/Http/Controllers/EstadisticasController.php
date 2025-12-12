@@ -211,7 +211,7 @@ class EstadisticasController extends Controller
         $resultados = $topClientes->map(function ($item) {
             return [
                 'cliente_id' => $item->cliente_id,
-                'nombre_cliente' => $item->cliente->nombre ?? 'Cliente Desconocido',
+                'nombre_cliente' => $item->cliente->nombre ?? 'Consumidor Final',
                 'email_cliente' => $item->cliente->email ?? null,
                 'numero_compras_en_periodo' => (int) $item->numero_compras_en_periodo,
                 'ultima_compra' => $item->ultima_compra ? $item->ultima_compra->toDateTimeString() : null,
@@ -284,7 +284,7 @@ class EstadisticasController extends Controller
         $resultados = $topClientes->map(function ($item) {
             return [
                 'cliente_id' => $item->cliente_id,
-                'nombre_cliente' => $item->cliente->nombre ?? 'Cliente Desconocido',
+                'nombre_cliente' => $item->cliente->nombre ?? 'Consumidor Final',
                 'monto_total' => (float) $item->monto_total_comprado,
             ];
         });

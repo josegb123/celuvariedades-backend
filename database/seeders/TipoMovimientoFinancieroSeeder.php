@@ -20,20 +20,20 @@ class TipoMovimientoFinancieroSeeder extends Seeder
         ]);
 
         TipoMovimientoFinanciero::create([
-            'nombre' => 'Abono a Cartera',
+            'nombre' => 'Abono a deuda',
             'descripcion' => 'Recibos de caja por pagos de clientes a ventas realizadas a crédito.',
+            'tipo' => 'Ingreso',
+        ]);
+
+        TipoMovimientoFinanciero::create([
+            'nombre' => 'Abono inicial a venta',
+            'descripcion' => 'Abono inicial para una venta a crédito o plan separe.',
             'tipo' => 'Ingreso',
         ]);
 
         TipoMovimientoFinanciero::create([
             'nombre' => 'Ingreso Operacional Vario',
             'descripcion' => 'Ingresos por servicios o productos externos al oficio principal (el que definiste originalmente).',
-            'tipo' => 'Ingreso',
-        ]);
-
-        TipoMovimientoFinanciero::create([
-            'nombre' => 'Abono inicial para la venta',
-            'descripcion' => 'Abono inicial para una venta a crédito o plan separe.',
             'tipo' => 'Ingreso',
         ]);
 

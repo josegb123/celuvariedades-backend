@@ -11,9 +11,9 @@ use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
-
 class VentaService
 {
+    private AbonoService $abonoService;
     private InventarioService $inventarioService;
     private MovimientoFinancieroService $movimientoFinancieroService;
     private CajaDiariaService $cajaDiariaService;
@@ -26,11 +26,13 @@ class VentaService
     public function __construct(
         InventarioService $inventarioService,
         MovimientoFinancieroService $movimientoFinancieroService,
-        CajaDiariaService $cajaDiariaService
+        CajaDiariaService $cajaDiariaService,
+        AbonoService $abonoService
     ) {
         $this->inventarioService = $inventarioService;
         $this->movimientoFinancieroService = $movimientoFinancieroService;
         $this->cajaDiariaService = $cajaDiariaService;
+        $this->abonoService = $abonoService;
     }
 
     /**
@@ -171,52 +173,61 @@ class VentaService
                 $abonoInicial = (float) ($validatedData['abono_inicial'] ?? 0.00);
                 $montoTotalVenta = (float) $venta->total;
 
-                // 1. Validación de abono
+                // 1. Validación de abono inicial
                 if ($abonoInicial > $montoTotalVenta) {
                     throw new Exception("El abono inicial ({$abonoInicial}) no puede ser mayor que el total de la venta ({$montoTotalVenta}).");
                 }
 
-                // 2. Cálculo del Monto Pendiente Final
-                $montoPendiente = $montoTotalVenta - $abonoInicial;
+                // 2. Determinar fecha de vencimiento y estado inicial
+                $diasPlazo = $this->determinarPlazoCredito($calculos['items'], $tipoVenta->nombre);
 
-                // 3. Registrar el Movimiento Financiero del Abono (si existe)
-                if ($abonoInicial > 0) {
-                    $this->movimientoFinancieroService->registrarMovimiento(
-                        monto: $abonoInicial,
-                        tipoMovimientoNombre: 'Abono inicial para la venta',
-                        descripcion: "Abono inicial para la venta ID {$venta->id}",
-                        metodoPago: $venta->metodo_pago, // Usar el método de pago de la venta
-                        ventaId: $venta->id,
-                        userId: $venta->user_id,
-                        referenciaTabla: 'cuentas_por_cobrar',
-                        referenciaId: null,
-                        cajaDiariaId: $cajaDiariaId
-                    );
-                }
 
-                // 4. Determinar fecha de vencimiento y estado
-                $diasPlazo = $this->determinarPlazoCredito($calculos['items'], $tipoVenta->nombre); // Se pasa el tipo de venta
-                $estadoCuenta = $montoPendiente <= 0 ? 'Pagada' : 'Pendiente';
-                $estadoVenta = $montoPendiente <= 0 ? 'finalizada' : 'pendiente_pago';
+                // Se crea la CuentaPorCobrar con el monto total
+                //          y el monto pendiente igual al total.
+                $montoPendienteInicial = $montoTotalVenta;
+                $estadoCuentaInicial = 'Pendiente';
 
-                // 5. Creación de la ÚNICA Cuenta por Cobrar
-                CuentaPorCobrar::create([
+                // 3. Creación de la ÚNICA Cuenta por Cobrar
+                $cuentaPorCobrar = CuentaPorCobrar::create([
                     'venta_id' => $venta->id,
                     'cliente_id' => $venta->cliente_id,
                     'monto_original' => $montoTotalVenta,
-                    'monto_pendiente' => $montoPendiente,
-                    'estado' => $estadoCuenta,
+                    'monto_pendiente' => $montoPendienteInicial,
+                    'estado' => $estadoCuentaInicial,
                     'fecha_vencimiento' => now()->addDays($diasPlazo),
                 ]);
 
-                // 6. Actualizar el estado de la Venta (si cambió)
-                if ($venta->estado !== $estadoVenta) {
-                    $venta->estado = $estadoVenta;
+                // 4. Procesar el Abono Inicial (Si existe)
+                // Delegamos TODO el manejo del abono, movimiento financiero,
+                // y actualización de saldo/estado a AbonoService.
+                if ($abonoInicial > 0) {
+                    $datosAbono = [
+                        'cuenta_por_cobrar_id' => $cuentaPorCobrar->id,
+                        'monto' => $abonoInicial,
+                        'metodo_pago' => $validatedData['metodo_pago'] ?? 'efectivo', // Usar el método de pago de la venta
+                        'user_id' => $venta->user_id,
+                        'caja_diaria_id' => $cajaDiariaId, // La validación ya se hizo
+                        'referencia_pago' => $validatedData['referencia_pago'] ?? "Abono inicial en venta {$venta->id}",
+                        'tipo_abono' => "inicial",
+                    ];
+
+                    $this->abonoService->procesarAbono($datosAbono);
+
+                    // Recargar la cuenta para reflejar la actualización de saldo/estado
+                    $cuentaPorCobrar->refresh();
+                }
+
+
+                // 5. Actualizar el estado de la Venta (Si el AbonoService la dejó pagada)
+                $nuevoEstadoVenta = $cuentaPorCobrar->estado === 'Pagada' ? 'finalizada' : 'pendiente_pago';
+
+                if ($venta->estado !== $nuevoEstadoVenta) {
+                    $venta->estado = $nuevoEstadoVenta;
                     $venta->save();
                 }
             }
 
-            return $venta->load('detalles.producto', 'cliente', 'user', 'cuentaPorCobrar');
+            return $venta->load('detalles.producto', 'cliente', 'user', 'cuentaPorCobrar', 'cuentaPorCobrar.abonos');
         });
     }
 
