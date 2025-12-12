@@ -96,17 +96,20 @@
     <div class="container">
 
         <div class="header">
-            <h3>CELUVARIEDADES M y K</h3>
-            <p>KAREN MILENA MURILLO MARTÍNEZ</p>
-            <p>NIT: 1.073.980.539 - 6</p>
-            <p style="font-style: italic;">Venta al por menor de celulares, accesorios, recargas y minutos</p>
-            <p>Calle 5 No. 13-08 Corregimiento de Villa Fátima Buenavista - Córdoba</p>
-            <p>Tel: 316 654 26 37</p>
+            {{-- Datos del negocio traídos directamente del archivo .env --}}
+
+            <h3>{{ env('NEGOCIO_NOMBRE', 'NOMBRE NO DEFINIDO') }}</h3>
+            <p>{{ env('NEGOCIO_PROPIETARIO', 'PROPIETARIO NO DEFINIDO') }}</p>
+            <p>NIT: {{ env('NEGOCIO_NIT', 'N/A') }}</p>
+            <p style="font-style: italic;">{{ env('NEGOCIO_SLOGAN', 'Slogan no definido') }}</p>
+            <p>{{ env('NEGOCIO_DIRECCION', 'Dirección no definida') }}</p>
+            <p>Tel: {{ env('NEGOCIO_TELEFONO', 'Teléfono no definido') }}</p>
         </div>
 
         <div class="divider"></div>
 
         <div class="details">
+            {{-- Datos del cliente y venta (estos vienen de la base de datos, no del .env) --}}
             <p><strong>FACTURA DE VENTA N°:</strong> {{ $venta->id }}</p>
             <p><strong>FECHA:</strong> {{ $venta->created_at->format('d/m/Y H:i') }}</p>
             <p><strong>SEÑOR(ES):</strong> {{ $venta->cliente->nombre ?? 'N/A' }}</p>

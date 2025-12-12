@@ -261,7 +261,7 @@ class EstadisticasController extends Controller
     }
 
     /**
-     * Calcula el Top 10 de clientes por monto total de ventas.     
+     * Calcula el Top 10 de clientes por monto total de ventas.
      */
     public function topClientes(): JsonResponse
     {
@@ -297,7 +297,7 @@ class EstadisticasController extends Controller
 
     /**
      * Lista los productos cuyo stock está por debajo de un umbral (threshold).
-     * Recibe el parámetro opcional 'umbral' (por defecto 5).     
+     * Recibe el parámetro opcional 'umbral' (por defecto 5).
      */
     public function productosBajoStock(Request $request): JsonResponse
     {
@@ -315,6 +315,12 @@ class EstadisticasController extends Controller
         ]);
     }
 
+    /**
+     * Obtiene el total de ventas y beneficio agrupados por periodo,
+     * e incluye la lista de transacciones de ventas finalizadas en ese periodo.
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function getVentasPorPeriodo(Request $request): JsonResponse
     {
         // 1. Obtener y validar el periodo solicitado
@@ -327,7 +333,9 @@ class EstadisticasController extends Controller
         };
 
         try {
-            // 2. Ejecutar la consulta de agregación
+            // 2. EJECUTAR LA CONSULTA DE VENTA Y BENEFICIO (Sin cambios)
+
+            // a) Obtener ventas totales por periodo
             $ventasPorPeriodo = Venta::query()
                 ->where(function ($query) {
                     $query->where('ventas.estado', 'finalizada')
@@ -341,7 +349,7 @@ class EstadisticasController extends Controller
                 ->orderBy('periodo_fecha')
                 ->get();
 
-            // 3. Calcular el beneficio por periodo
+            // b) Calcular el beneficio por periodo
             $beneficioPorPeriodo = DetalleVenta::query()
                 ->join('ventas', 'detalle_ventas.venta_id', '=', 'ventas.id')
                 ->where('ventas.estado', 'finalizada')
@@ -354,7 +362,26 @@ class EstadisticasController extends Controller
                 ->get()
                 ->keyBy('periodo_fecha');
 
-            // 4. Unir ventas y beneficio por periodo
+            // 3. OBTENER LA LISTA COMPLETA DE VENTAS (NUEVO)
+            $listaVentas = Venta::query()
+                // Aplicar el mismo filtro de estado que la agregación
+                ->where(function ($query) {
+                    $query->where('estado', 'finalizada')
+                        ->orWhere('estado', 'parcialmente devuelta');
+                })
+                // Eager loading de las relaciones necesarias
+                ->with([
+                    'cliente' => function ($q) {
+                        $q->select('id', 'nombre', 'cedula');
+                    },
+                    'user' => function ($q) {
+                        $q->select('id', 'name'); // Vendedor
+                    }
+                ])
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            // 4. Unir ventas y beneficio por periodo (Sin cambios)
             $resultados = $ventasPorPeriodo->map(function ($item) use ($beneficioPorPeriodo) {
                 $beneficio = $beneficioPorPeriodo[$item->periodo_fecha]->beneficio ?? 0;
                 return [
@@ -364,12 +391,13 @@ class EstadisticasController extends Controller
                 ];
             });
 
-            // 5. Devolver la respuesta
+            // 5. Devolver la respuesta (MODIFICADO)
             return response()->json([
                 'periodo' => $periodo,
-                'data' => $resultados,
+                'data' => $resultados, // Datos agregados
+                // [NUEVO] Lista completa de ventas en el periodo de tiempo
+                'lista_ventas' => $listaVentas,
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'No se pudo obtener las Ventas por Período.',
@@ -397,7 +425,6 @@ class EstadisticasController extends Controller
                 'monto_promedio_venta' => $montoPromedio,
                 'unidad' => 'COP' // O la unidad monetaria que uses
             ]);
-
         } catch (\Exception $e) {
             // Manejo de errores
             return response()->json([

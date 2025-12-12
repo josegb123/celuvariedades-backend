@@ -69,7 +69,6 @@ class DevolucionController extends Controller
                 'nuevo_estado' => $ventaActualizada->estado,
                 'devoluciones_creadas' => DevolucionResource::collection($nuevasDevoluciones)
             ], 201);
-
         } catch (\Exception $e) {
             Log::error('Error al procesar la devolución parcial: ' . $e->getMessage(), ['exception' => $e, 'request_data' => $request->all()]);
             return response()->json(['message' => 'Error al procesar la devolución parcial: ' . $e->getMessage()], 500);
@@ -95,7 +94,7 @@ class DevolucionController extends Controller
             $venta = Venta::findOrFail($ventaId);
 
             $motivo = $request->input('motivo');
-            $metodoReembolso = $request->input('metodo_reembolso', 'SaldoCliente'); // SaldoCliente por defecto
+            $metodoReembolso = $request->input('metodo_reembolso'); // SaldoCliente por defecto
 
             $ventaAnulada = $this->devolucionService->anularVenta(
                 venta: $venta,
@@ -110,7 +109,6 @@ class DevolucionController extends Controller
                 'venta_id' => $ventaAnulada->id,
                 'nuevo_estado' => $ventaAnulada->estado,
             ], 200);
-
         } catch (\Exception $e) {
             Log::error('Error al anular la venta: ' . $e->getMessage(), ['exception' => $e, 'venta_id' => $ventaId]);
             return response()->json(['message' => 'Error al anular la venta: ' . $e->getMessage()], 500);

@@ -82,4 +82,6 @@ class AuthController extends Controller
     {
         return response()->json($request->user());
     }
+
+    // TODO: Create new function for register user
 }
