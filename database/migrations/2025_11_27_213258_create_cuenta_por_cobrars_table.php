@@ -23,8 +23,8 @@ return new class extends Migration {
                 ->onDelete('restrict');
 
             // Información financiera
-            $table->decimal('monto_original', 10, 2);
-            $table->decimal('monto_pendiente', 10, 2); // Saldo actual
+            $table->decimal('monto_original', 15, 2);
+            $table->decimal('monto_pendiente', 15, 2); // Saldo actual
 
             // Gestión de Cartera
             $table->date('fecha_vencimiento')->nullable();

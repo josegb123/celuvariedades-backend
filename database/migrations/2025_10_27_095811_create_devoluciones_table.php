@@ -25,12 +25,12 @@ return new class extends Migration {
 
             // Campos de Registro
             // Ahora la cantidad puede ser mayor a 1, reflejando el número de unidades devueltas de esa línea.
-            $table->decimal('cantidad', 8, 2);
+            $table->decimal('cantidad', 15, 2);
 
             $table->string('motivo');
 
             // Se usa el costo unitario de la venta original para el cálculo del Kárdex/Inventario.
-            $table->decimal('costo_unitario', 10, 2);
+            $table->decimal('costo_unitario', 15, 2);
 
             $table->text('notas')->nullable();
 

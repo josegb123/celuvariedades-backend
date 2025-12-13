@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -21,7 +20,7 @@ return new class extends Migration
 
             // Datos del Movimiento
             $table->integer('cantidad'); // Siempre positiva. La acción (entrada/salida) está en tipo_movimiento
-            $table->decimal('costo_unitario', 10, 2); // Costo al momento del movimiento
+            $table->decimal('costo_unitario', 15, 2); // Costo al momento del movimiento
 
             // Referencia Transaccional
             $table->string('referencia_tabla', 50)->nullable(); // Ej: 'ventas', 'compras', 'devoluciones', 'ajustes'

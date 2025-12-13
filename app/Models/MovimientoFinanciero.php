@@ -13,17 +13,16 @@ class MovimientoFinanciero extends Model
     protected $fillable = [
         'tipo_movimiento_id',
         'monto',
-        'tipo', // Agregado
+        'tipo',
         'descripcion',
-        'metodo_pago', // Agregado
+        'metodo_pago',
         'venta_id',
         'user_id',
-        'referencia_tabla', // Agregado
-        'referencia_id', // Agregado
-        'caja_diaria_id', // Agregado
+        'referencia_tabla',
+        'referencia_id',
+        'caja_diaria_id',
     ];
 
-    // El campo 'tipo_movimiento_financieros' estaba mal escrito en la definición original
 
     public function tipoMovimiento()
     {

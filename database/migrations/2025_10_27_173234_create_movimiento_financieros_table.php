@@ -14,7 +14,7 @@ return new class extends Migration {
             $table->id();
 
             // Campos de Monto y Referencia de Tipo
-            $table->decimal('monto', 10, 2);
+            $table->decimal('monto', 15, 2);
             $table->foreignId('tipo_movimiento_id')->constrained('tipo_movimiento_financieros');
             $table->string('tipo', 10)->comment('Ingreso o Egreso');
             $table->string('descripcion');

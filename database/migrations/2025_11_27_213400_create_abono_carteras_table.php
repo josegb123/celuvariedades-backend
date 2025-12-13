@@ -22,7 +22,7 @@ return new class extends Migration {
                 ->onDelete('restrict')
                 ->comment('Usuario que registra el abono');
 
-            $table->decimal('monto_abonado', 10, 2);
+            $table->decimal('monto_abonado', 15, 2);
             $table->string('metodo_pago', 50); // Efectivo, Transferencia, etc.
             $table->string('referencia_pago')->nullable();
 

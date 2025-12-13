@@ -23,8 +23,8 @@ return new class extends Migration {
             $table->text('descripcion')->nullable();
 
             // Precios e Inventario (CRÍTICO)
-            $table->decimal('precio_compra', 10, 2);
-            $table->decimal('precio_venta', 10, 2);
+            $table->decimal('precio_compra', 15, 2);
+            $table->decimal('precio_venta', 15, 2);
             $table->integer('stock_actual')->default(0);
             $table->integer('stock_reservado')->default(0);
             $table->integer('stock_minimo')->default(5);

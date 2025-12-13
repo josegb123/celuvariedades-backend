@@ -11,7 +11,7 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('ventas', function (Blueprint $table) {
-            $table->decimal('abono_inicial', 10, 2)->default(0)->after('total')->comment('Monto abonado inicialmente en ventas a crédito/separe');
+            $table->decimal('abono_inicial', 15, 2)->default(0)->after('total')->comment('Monto abonado inicialmente en ventas a crédito/separe');
         });
     }
 

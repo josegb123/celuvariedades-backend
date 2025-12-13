@@ -16,8 +16,8 @@ return new class extends Migration {
                 ->nullable()
                 ->constrained('cuentas_por_cobrar'); // Puede ser null si el saldo viene de una devolución de contado
 
-            $table->decimal('monto_original', 10, 2);
-            $table->decimal('monto_pendiente', 10, 2);
+            $table->decimal('monto_original', 15, 2);
+            $table->decimal('monto_pendiente', 15, 2);
             $table->string('estado', 50)->default('Activo');
             $table->string('motivo', 100);
             $table->timestamps();

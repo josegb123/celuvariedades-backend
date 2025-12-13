@@ -35,6 +35,16 @@ class ProductoFactory extends Factory
             $imageUrl = "https://picsum.photos/id/{$imageId}/{$width}/{$height}.webp";
         }
 
+        // 3. Precio COP productos
+        $minCompra = 1000000;
+        $maxCompra = 5000000;
+        $precioCompra = $this->faker->numberBetween($minCompra, $maxCompra);
+        $margenMinimo = 500000;
+        $precioVenta = $this->faker->numberBetween(
+            $precioCompra + $margenMinimo,
+            $precioCompra + 2000000
+        );
+
         return [
             'categoria_id' => Categoria::all()->random()->id,
             'user_id' => User::all()->random()->id,
@@ -47,12 +57,14 @@ class ProductoFactory extends Factory
             'descripcion' => fake()->randomElement($adjetivos) . ' ' . fake()->sentence(5),
 
             'imagen_url' => $imageUrl,
+            // Valores en COP (rango de millones)
+            'precio_compra' => $precioCompra,
+            'precio_venta' => $precioVenta,
 
-            'precio_compra' => fake()->randomFloat(2, 50, 250),
-            'precio_venta' => fake()->randomFloat(2, 250, 450),
-            'stock_actual' => fake()->numberBetween(10, 100),
-            'stock_reservado' => fake()->numberBetween(0, 5),
-            'stock_minimo' => fake()->numberBetween(5, 15),
+            // Stock (simplemente ajustamos los rangos a tus necesidades)
+            'stock_actual' => $this->faker->numberBetween(10, 100),
+            'stock_reservado' => $this->faker->numberBetween(0, 5),
+            'stock_minimo' => $this->faker->numberBetween(5, 15),
         ];
     }
 

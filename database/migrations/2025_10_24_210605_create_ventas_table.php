@@ -31,14 +31,14 @@ return new class extends Migration {
             $table->unsignedBigInteger('tipo_venta_id');
 
             // --- Totales Financieros ---
-            $table->decimal('subtotal', 10, 2)->comment('Suma de subtotales de ítems antes de impuestos y descuento general');
-            $table->decimal('descuento_total', 10, 2)->default(0.00)->comment('Descuento aplicado al total de la venta');
+            $table->decimal('subtotal', 15, 2)->comment('Suma de subtotales de ítems antes de impuestos y descuento general');
+            $table->decimal('descuento_total', 15, 2)->default(0.00)->comment('Descuento aplicado al total de la venta');
 
             // Mantener IVA en la cabecera (Aunque el detalle es el que contiene el desglose)
-            $table->decimal('iva_porcentaje', 5, 2)->default(19.00)->comment('Tasa de IVA general de la venta');
-            $table->decimal('iva_monto', 10, 2)->comment('Monto total de IVA');
+            $table->decimal('iva_porcentaje', 15, 2)->default(19.00)->comment('Tasa de IVA general de la venta');
+            $table->decimal('iva_monto', 15, 2)->comment('Monto total de IVA');
 
-            $table->decimal('total', 10, 2)->comment('Monto final a pagar');
+            $table->decimal('total', 15, 2)->comment('Monto final a pagar');
 
             // --- Estado y Pago ---
             $table->string('estado', 50)->default('finalizada')->comment('finalizada, cancelada, pendiente_pago, reembolsada');

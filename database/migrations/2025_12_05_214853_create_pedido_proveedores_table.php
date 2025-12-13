@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -17,7 +16,7 @@ return new class extends Migration
             $table->date('fecha_entrega');
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('proveedor_id')->constrained('proveedores')->onDelete('cascade');
-            $table->decimal('monto_total', 10, 2);
+            $table->decimal('monto_total', 15, 2);
             $table->string('estado')->default('recibido'); // 'recibido', 'pendiente', 'cancelado'
             $table->timestamps();
             $table->softDeletes();
