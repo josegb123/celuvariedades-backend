@@ -36,13 +36,13 @@ class ProductoFactory extends Factory
         }
 
         // 3. Precio COP productos
-        $minCompra = 1000000;
-        $maxCompra = 5000000;
+        $minCompra = 20000;
+        $maxCompra = 50000;
         $precioCompra = $this->faker->numberBetween($minCompra, $maxCompra);
-        $margenMinimo = 500000;
+        $margenMinimo = 30000;
         $precioVenta = $this->faker->numberBetween(
             $precioCompra + $margenMinimo,
-            $precioCompra + 2000000
+            $precioCompra + 30000
         );
 
         return [

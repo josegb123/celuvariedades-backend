@@ -496,7 +496,7 @@ class EstadisticasController extends Controller
                 ->select(
                     'categorias.nombre as categoria_nombre',
                     DB::raw('CAST(SUM(detalle_ventas.cantidad) AS UNSIGNED) as total_unidades_vendidas'),
-                    DB::raw('CAST(SUM(detalle_ventas.cantidad * detalle_ventas.precio_unitario) AS DECIMAL(10, 2)) as total_ventas_categoria')
+                    DB::raw('CAST(SUM(detalle_ventas.cantidad * detalle_ventas.precio_unitario) AS DECIMAL(15, 2)) as total_ventas_categoria')
                 )
                 ->groupBy('categorias.nombre')
                 ->orderByDesc('total_ventas_categoria')
