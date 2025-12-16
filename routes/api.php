@@ -105,6 +105,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/ventas-por-categoria', [EstadisticasController::class, 'ventasPorCategoria']);
             Route::get('/exportar-ventas-excel', [EstadisticasController::class, 'exportarVentasExcel']);
             Route::get('/exportar-ventas-pdf', [EstadisticasController::class, 'exportarVentasPdf']);
+            Route::get('/cuadre-caja', [EstadisticasController::class, 'cuadreDeCaja']); // New route for Cash Reconciliation
         });
 
         // Gestión de Devoluciones (Admin-only)

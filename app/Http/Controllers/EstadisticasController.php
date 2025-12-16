@@ -8,11 +8,14 @@ use App\Models\Producto;
 use App\Models\Venta;
 use App\Models\PedidoProveedor; // Added
 use App\Models\Cliente; // Added
+use App\Models\CajaDiaria; // Added for Cuadre de Caja
+use App\Models\MovimientoFinanciero; // Added for Cuadre de Caja
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
 use Maatwebsite\Excel\Facades\Excel; // Added
 use App\Exports\VentasExport; // Added
+use Illuminate\Support\Facades\Validator; // Added for explicit validation
 
 class EstadisticasController extends Controller
 {
@@ -153,9 +156,9 @@ class EstadisticasController extends Controller
         $query = PedidoProveedor::query()
             ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
 
-        $totalGastoProveedores = (float) $query->sum('total');
+        $totalGastoProveedores = (float) $query->sum('monto_total');
 
-        $detallesPorProveedor = $query->select('proveedor_id', DB::raw('SUM(total) as total_gastado'))
+        $detallesPorProveedor = $query->select('proveedor_id', DB::raw('SUM(monto_total) as total_gastado'))
             ->groupBy('proveedor_id')
             ->with([
                 'proveedor' => function ($q) {
@@ -299,21 +302,36 @@ class EstadisticasController extends Controller
      * Lista los productos cuyo stock está por debajo de un umbral (threshold).
      * Recibe el parámetro opcional 'umbral' (por defecto 5).
      */
-    public function productosBajoStock(Request $request): JsonResponse
+    public function productosBajoStock(): JsonResponse
     {
-        // Obtener el umbral del request (ej: si es 5, buscará stock <= 5).
-        $umbral = (int) $request->get('umbral', 5);
 
-        $productos = Producto::select('id', 'nombre', 'stock_actual')
-            ->where('stock_actual', '<=', $umbral)
-            ->orderBy('stock_actual') // Mostrar el más bajo primero
+        $productos = Producto::whereColumn('stock_actual', '<', 'stock_minimo')
+            ->orderBy('stock_minimo')
             ->get();
 
-        return response()->json([
-            'umbral' => $umbral,
-            'data' => $productos,
-        ]);
+        $resultados = $productos->map(function ($item) {
+            return [
+                'id' => $item->id,
+                'nombre' => $item->nombre,
+                'stock_actual' => (int) $item->stock_actual,
+                'stock_minimo' => (int) $item->stock_minimo,
+            ];
+        });
+
+        if ($resultados->count() > 0) {
+            return response()->json([
+                'total' => $resultados->count(),
+                'data' => $resultados,
+            ]);
+        } else {
+            return response()->json([
+                'data' => [],
+                'message' => 'No se encontraron productos con stock bajo.',
+                'total' => 0
+            ], 404);
+        }
     }
+
 
     /**
      * Obtiene el total de ventas y beneficio agrupados por periodo,
@@ -509,6 +527,81 @@ class EstadisticasController extends Controller
             return response()->json([
                 'error' => 'No se pudo obtener el reporte de Ventas por Categoría.',
                 'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Reporte de Conciliación de Efectivo (Cuadre de Caja)
+     * Compara el flujo de efectivo agregado de movimientos financieros con la actividad de cajas diarias.
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function cuadreDeCaja(Request $request): JsonResponse
+    {
+        $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+        ]);
+
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+
+        try {
+            // 1. Calcular Flujo de Efectivo Agregado desde MovimientoFinanciero
+
+            $totalIngresosEfectivo = MovimientoFinanciero::whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+                ->where('tipo', 'ingreso')
+                ->sum('monto');
+
+            $totalEgresosEfectivo = MovimientoFinanciero::whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+                ->where('tipo', 'egreso')
+                ->sum('monto');
+
+            $saldoNetoMovimientos = $totalIngresosEfectivo - $totalEgresosEfectivo;
+
+            // 2. Consolidado de Cajas Diarias
+            // Suma de montos iniciales de cajas abiertas en el periodo
+            $totalMontoInicialCajas = CajaDiaria::whereBetween('fecha_apertura', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+                ->sum('fondo_inicial');
+
+            // Suma de balances finales reales de cajas cerradas en el periodo
+            $totalBalanceFinalRealCajas = CajaDiaria::whereNotNull('fecha_cierre')
+                ->whereBetween('fecha_cierre', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+                ->sum('monto_cierre_fisico');
+
+            // Suma de balances finales esperados de cajas cerradas en el periodo
+            $totalBalanceFinalEsperadoCajas = CajaDiaria::whereNotNull('fecha_cierre')
+                ->whereBetween('fecha_cierre', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+                ->sum('monto_cierre_teorico');
+
+            // Calcular la discrepancia agregada de las cajas cerradas en el periodo
+            // Esta es la suma de los "sobrantes/faltantes" individuales de cada caja cerrada en el periodo
+            $discrepanciaAgregadaCajasCerradas = $totalBalanceFinalRealCajas - $totalBalanceFinalEsperadoCajas;
+
+            return response()->json([
+                'periodo' => [
+                    'start_date' => $startDate,
+                    'end_date' => $endDate,
+                ],
+                'flujo_efectivo_movimientos' => [
+                    'total_ingresos_efectivo' => (float) $totalIngresosEfectivo,
+                    'total_egresos_efectivo' => (float) $totalEgresosEfectivo,
+                    'saldo_neto_movimientos' => (float) $saldoNetoMovimientos,
+                ],
+                'consolidado_cajas_diarias' => [
+                    'total_monto_inicial_cajas_abiertas_en_periodo' => (float) $totalMontoInicialCajas,
+                    'total_balance_final_real_cajas_cerradas_en_periodo' => (float) $totalBalanceFinalRealCajas,
+                    'total_balance_final_esperado_cajas_cerradas_en_periodo' => (float) $totalBalanceFinalEsperadoCajas,
+                    'discrepancia_total_cajas_cerradas_en_periodo' => (float) $discrepanciaAgregadaCajasCerradas,
+                ],
+                'descripcion_cuadre' => 'Este reporte compara el flujo de efectivo neto registrado en los movimientos financieros con los saldos reportados por las cajas diarias. Una discrepancia indica posibles errores en el registro o conteo de efectivo.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'No se pudo generar el reporte de Cuadre de Caja.',
+                'message' => $e->getMessage(),
+                'trace' => config('app.debug') ? $e->getTraceAsString() : null,
             ], 500);
         }
     }
