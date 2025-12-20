@@ -328,7 +328,7 @@ class EstadisticasController extends Controller
                 'data' => [],
                 'message' => 'No se encontraron productos con stock bajo.',
                 'total' => 0
-            ], 404);
+            ], 200);
         }
     }
 

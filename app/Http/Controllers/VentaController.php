@@ -35,88 +35,68 @@ class VentaController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        // 1. Inicializar la consulta y cargar las relaciones necesarias
+        $user = auth()->user();
+
         $query = Venta::with(['user', 'cliente', 'detalles.producto'])
-            ->latest(); // Usamos latest() para order_by='created_at' desc
+            ->latest();
 
-        // Si se pide un 'limit' (como lo hace el servicio de Front-end con limit=10),
-        // devolvemos un simple array sin paginar, optimizado para el dashboard.
-        if ($limit = $request->get('limit')) {
-            // Aseguramos que el límite sea un entero positivo, máximo 100
-            $limit = min(abs((int) $limit), 100);
-
-            // Aplicamos el límite y obtenemos la colección de resultados
-            $ventas = $query->limit($limit)->get();
-
-            // Usamos el Resource Collection y devolvemos el array directo (como lo espera tu Front)
-            return response()->json(VentaIndexResource::collection($ventas));
+        // 1. FILTRO DE SEGURIDAD POR ROL
+        if ($user->role === 'seller') {
+            $query->where('user_id', $user->id);
         }
-        // ----------------------------------------------------
 
-        // 2. FILTROS PRINCIPALES (Usados en la vista de Administración)
+        // 2. FILTRO POR FECHA (Hoy por defecto)
+        // Solo aplica 'hoy' si no se envían filtros específicos de fecha
+        if (!$request->has('fecha') && !$request->has('fecha_inicio') && !$request->has('all_time')) {
+            $query->whereDate('created_at', now()->today());
+        }
 
-        // 2.1. FILTRO: Búsqueda global por Cliente o Vendedor (usado como 'search' en el Front)
+        // 3. FILTROS DINÁMICOS
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {
-                // Buscar por nombre de cliente
-                $q->whereHas('cliente', function ($qCliente) use ($search) {
-                    $qCliente->where('nombre', 'like', "%{$search}%");
-                })
-                    // O buscar por nombre de usuario/vendedor
-                    ->orWhereHas('user', function ($qUser) use ($search) {
-                        $qUser->where('name', 'like', "%{$search}%");
-                    });
+                $q->whereHas('cliente', fn($c) => $c->where('nombre', 'like', "%{$search}%"))
+                    ->orWhereHas('user', fn($u) => $u->where('name', 'like', "%{$search}%"));
             });
         }
 
-        // 2.2. FILTRO: Por Estado (finalizada, pendiente_pago, cancelada)
         if ($estado = $request->get('estado')) {
             $query->where('estado', $estado);
         }
 
-        // 2.3. FILTRO: Por Método de Pago
         if ($metodoPago = $request->get('metodo_pago')) {
             $query->where('metodo_pago', $metodoPago);
         }
 
-        // 2.4. FILTRO: Por Cliente específico (si se usa el campo 'cliente' en el query)
-        if ($cliente = $request->get('cliente_id')) { // Usar ID es más robusto que el nombre
-            $query->where('cliente_id', $cliente);
+        if ($clienteId = $request->get('cliente_id')) {
+            $query->where('cliente_id', $clienteId);
         }
 
-        // 2.5. FILTRO: Por Fecha exacta (si se usa el campo 'fecha')
+        // Rango de fechas explícito
         if ($fecha = $request->get('fecha')) {
             $query->whereDate('created_at', $fecha);
-        }
-
-        // 2.6. FILTRO: Por Rango de Fechas (Si se usa 'fecha_inicio' y 'fecha_fin'
-        //              en lugar de la lógica simplificada de $fechaInicio)
-        elseif ($fechaInicio = $request->get('fecha_inicio')) {
-            $fechaFin = $request->get('fecha_fin', now()->toDateString()); // Por defecto, hasta hoy
-
+        } elseif ($fechaInicio = $request->get('fecha_inicio')) {
+            $fechaFin = $request->get('fecha_fin', now()->toDateString());
             $query->whereBetween(DB::raw('DATE(created_at)'), [$fechaInicio, $fechaFin]);
         }
 
-
-        // 3. SOFT DELETES:
+        // 4. SOFT DELETES
         if ($request->get('trashed') === 'with') {
             $query->withTrashed();
         } elseif ($request->get('trashed') === 'only') {
             $query->onlyTrashed();
         }
 
-        // 4. PAGINACIÓN ESTÁNDAR (Solo si NO se solicitó un 'limit')
-        $perPage = $request->get('per_page', 15);
+        // 5. RESPUESTA SEGÚN LÍMITE O PAGINACIÓN
+        if ($limit = $request->get('limit')) {
+            $limit = min(abs((int) $limit), 100);
+            $ventas = $query->limit($limit)->get();
+            return response()->json(VentaIndexResource::collection($ventas));
+        }
 
-        // Ejecutamos la paginación        
+        $perPage = $request->get('per_page', 15);
         $ventas = $query->paginate($perPage);
 
-        // Opcional: Aplicar el Resource Collection al objeto paginado si necesitas modificar los datos en la paginación.
-        // Si no necesitas modificar los campos de la paginación (ej. current_page, total, etc.):
         return VentaIndexResource::collection($ventas)->response();
-
-        // Si necesitas que el objeto retornado sea el raw Laravel Pagination object (como lo espera tu Front):
-        // return response()->json($ventas); 
     }
 
     /**
