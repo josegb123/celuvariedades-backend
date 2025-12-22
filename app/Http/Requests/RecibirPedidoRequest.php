@@ -30,7 +30,7 @@ class RecibirPedidoRequest extends FormRequest
                 'max:255',
                 Rule::unique('pedido_proveedores', 'numero_factura_proveedor'),
             ],
-            'fecha_entrega' => ['required', 'date'],
+            'fecha_entrega' => ['required', 'string'],
             'user_id' => ['required', 'exists:users,id'], // User who received the order
             'proveedor_id' => ['required', 'exists:proveedores,id'],
             'monto_total' => ['required', 'numeric', 'min:0'],

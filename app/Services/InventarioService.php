@@ -4,7 +4,7 @@
 
 namespace App\Services;
 
-use App\Exceptions\StockInsuficienteException;
+use App\Http\Exceptions\StockInsuficienteException;
 use App\Models\MovimientoInventario;
 use App\Models\Producto;
 use App\Models\TipoMovimientoInventario;

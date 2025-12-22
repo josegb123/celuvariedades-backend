@@ -6,6 +6,7 @@ use App\Http\Controllers\CajaDiariaController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\CuentaPorCobrarController;
+use App\Http\Controllers\DetallesNegocioController;
 use App\Http\Controllers\EstadisticasController;
 use App\Http\Controllers\MovimientoFinancieroController;
 use App\Http\Controllers\ProveedorController;
@@ -16,14 +17,36 @@ use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\PedidoProveedorController;
 use App\Http\Controllers\DevolucionController; // Import DevolucionController
 use App\Http\Controllers\AvalController; // Import AvalController
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 // 1. RUTAS PÚBLICAS (No requieren token)
-Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+// Ajustes de los detalles del negocio
+Route::get('/settings/business', [DetallesNegocioController::class, 'show']);
 
 // Rutas autenticadas para ambos roles (admin y vendedor)
 Route::middleware('auth:sanctum')->group(function () {
+    // Solo si el servidor web no redirige /api/storage automáticamente
+    Route::get('/storage/{folder}/{filename}', function ($folder, $filename) {
+        $path = storage_path("app/public/{$folder}/{$filename}");
+
+        if (!File::exists($path)) {
+            abort(404);
+        }
+
+        $file = File::get($path);
+        $type = File::mimeType($path);
+
+        $response = Response::make($file, 200);
+        $response->header("Content-Type", $type);
+
+        return $response;
+    });
+
+
+    Route::post('/register', [AuthController::class, 'register']);
     // Autenticación - Logout (requiere token para saber qué token revocar)
     Route::post('/logout', [AuthController::class, 'logout']);
 
@@ -55,6 +78,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/ventas', [VentaController::class, 'index']);
     Route::get('/ventas/{venta}', [VentaController::class, 'show']);
     Route::get('/ventas/{venta}/imprimir-pos', [VentaController::class, 'imprimirFacturaPos']);
+    Route::get('/estadisticas/productos-bajo-stock', [EstadisticasController::class, 'productosBajoStock']);
 
     // Rutas de Caja Diaria (Solo obtener activa para ambos; apertura/cierre restringido por Form Request)
     Route::prefix('cajas')->controller(CajaDiariaController::class)->group(function () {
@@ -82,19 +106,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/productos/{producto}', [ProductoController::class, 'update']);
         Route::delete('/productos/{producto}', [ProductoController::class, 'destroy']);
 
-
-
         // Gestión de Proveedores (CRUD Admin-only)
         Route::apiResource('proveedor', ProveedorController::class);
         Route::apiResource('/pedidos-proveedor', PedidoProveedorController::class);
-
-
 
         // Estadísticas (Admin-only)
         Route::prefix('estadisticas')->group(function () {
             Route::get('/ticket-promedio', [EstadisticasController::class, 'getTicketPromedio']);
             Route::get('/historial-ganancias', [EstadisticasController::class, 'historialGanancias']);
-            Route::get('/productos-bajo-stock', [EstadisticasController::class, 'productosBajoStock']);
+
             Route::get('/top-clientes', [EstadisticasController::class, 'topClientes']);
             Route::get('/top-productos', [EstadisticasController::class, 'topProductosVendidos']);
             Route::get('/ventas-por-periodo', [EstadisticasController::class, 'getVentasPorPeriodo']);
@@ -121,6 +141,28 @@ Route::middleware('auth:sanctum')->group(function () {
         // Venta (actualizar/eliminar solo Admin)
         Route::put('/ventas/{venta}', [VentaController::class, 'update']);
         Route::delete('/ventas/{venta}', [VentaController::class, 'destroy']);
+
+        // Actualizar configuración (Solo Admin)
+        Route::put('/settings/business', [DetallesNegocioController::class, 'update']);
+        //Route::put('/settings/business', [DetallesNegocioController::class, 'update']);
     });
+
+
+    /* Route::post('/test', function (Request $request) {
+
+
+        $request->validate(
+            [
+                'logo_image' => 'image|max:2048|mimes:jpeg,png,jpg,gif,svg,webp',
+            ]
+        );
+        if ($request->has('logo_image')) {
+            $archivo = $request->file('logo_image');
+            $ruta = $archivo->store('images', 'public');
+            return response()->json(['url' => Storage::url($ruta)], 210);
+        } else {
+            return response()->json("fallido", 422);
+        }
+    }); */
 });
 

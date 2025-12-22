@@ -20,7 +20,7 @@ class ProductoController extends Controller
     {
         $query = Producto::with(['categoria', 'user', 'proveedores']);
 
-        // Filtro por término de búsqueda (nombre o código de barra)
+        // 1. Filtros básicos
         $query->when($request->filled('search'), function ($q) use ($request) {
             $searchTerm = $request->input('search');
             $q->where(function ($subQuery) use ($searchTerm) {
@@ -29,18 +29,23 @@ class ProductoController extends Controller
             });
         });
 
-        // Filtro por ID de categoría
         $query->when($request->filled('categoria_id'), function ($q) use ($request) {
             $q->where('categoria_id', $request->input('categoria_id'));
         });
 
+        // 2. Lógica POS: Usando Subquery para evitar errores de GROUP BY
+        if ($request->has('pos')) {
+            $query->addSelect([
+                'total_vendido' => \App\Models\DetalleVenta::selectRaw('COALESCE(SUM(cantidad), 0)')
+                    ->whereColumn('producto_id', 'productos.id')
+            ])->orderByDesc('total_vendido');
+        } else {
+            $query->latest();
+        }
 
+        // 3. Paginación
         $perPage = $request->input('per_page', 18);
-
-        // 💡 Aplicar paginación con el límite dinámico
         $productos = $query->paginate($perPage);
-
-        $productos = $query->paginate(10);
 
         return response()->json(ProductoResource::collection($productos)->response()->getData(true));
     }
@@ -171,16 +176,18 @@ class ProductoController extends Controller
      */
     private function handleImageUpload(Request $request, array $data): array
     {
-        // 1. Almacenar nueva imagen
-        // Usamos 'productos' como subdirectorio en el disco 'public'
+        // 1. Almacenar nueva imagen en la carpeta 'productos'
+        // Retorna algo como: "productos/nombre_archivo.jpg"
         $path = $request->file('imagen')->store('productos', 'public');
 
-        // 2. Generar la URL completa (usando Storage::url() que es el método canónico de Laravel)
-        // asset() es más seguro para el puerto, pero Storage::url() es el estándar.
-        // Asumiendo que APP_URL está correctamente configurado en .env y config/filesystems.php
-        $data['imagen_url'] = Storage::url($path);
+        // 2. Generar la URL con el prefijo /api/storage
+        // asset('storage/' . $path) genera: http://tu-dominio/storage/productos/abc.jpg
+        $fullUrl = asset('storage/' . $path);
 
-        // 3. Eliminar el objeto UploadedFile
+        // Inyectamos el /api antes de /storage
+        $data['imagen_url'] = str_replace('/storage', '/api/storage', $fullUrl);
+
+        // 3. Limpiar el objeto del array para evitar errores al guardar en DB
         unset($data['imagen']);
 
         return $data;
@@ -196,26 +203,24 @@ class ProductoController extends Controller
             return;
         }
 
-        // Comprobar si la URL es una URL de Storage de Laravel (contiene /storage/)
-        // y si el host/path concuerda con la configuración local (Storage::url() o asset()).
-        // Si no es una URL local, NO la eliminamos.
+        // El prefijo que estamos inyectando en las URLs
+        $apiStoragePrefix = '/api/storage/';
 
-        $storagePrefix = 'storage/';
+        // 1. Obtener el path de la URL (ej: /api/storage/productos/img.jpg)
         $urlPath = parse_url($producto->imagen_url, PHP_URL_PATH);
 
-        // 1. Verificar si el path contiene el prefijo de storage
-        if (str_contains($urlPath, $storagePrefix)) {
-            // 2. Limpiar el prefijo /storage/ para obtener el path relativo al disco
-            $oldPath = trim(substr($urlPath, strpos($urlPath, $storagePrefix) + strlen($storagePrefix)), '/');
+        // 2. Verificar si la imagen es gestionada localmente por nuestra API
+        if (str_contains($urlPath, $apiStoragePrefix)) {
 
-            // 3. Eliminar del disco 'public'
-            if ($oldPath && Storage::disk('public')->exists($oldPath)) {
-                Storage::disk('public')->delete($oldPath);
+            // Extraemos lo que hay DESPUÉS de /api/storage/
+            // Si la URL es /api/storage/productos/foto.png -> obtenemos productos/foto.png
+            $relativePath = explode($apiStoragePrefix, $urlPath)[1] ?? null;
+
+            // 3. Eliminar del disco 'public' si el path es válido
+            if ($relativePath && Storage::disk('public')->exists($relativePath)) {
+                Storage::disk('public')->delete($relativePath);
             }
         }
-
-        // Si la imagen_url fue una URL externa (ej. https://otra-web.com/img.jpg), 
-        // no pasa la comprobación y no intentamos borrarla.
     }
 
     /**

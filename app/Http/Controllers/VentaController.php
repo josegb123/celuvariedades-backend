@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Exceptions\StockInsuficienteException;
+use App\Http\Exceptions\StockInsuficienteException;
 use App\Http\Requests\StoreVentaRequest;
 use App\Http\Requests\UpdateVentaRequest;
 use App\Http\Resources\VentaIndexResource;
