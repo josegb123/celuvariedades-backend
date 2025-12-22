@@ -14,14 +14,14 @@ class DatabaseSeeder extends Seeder
             TipoMovimientoInventarioSeeder::class,
             TipoVentaSeeder::class,
             CategoriaSeeder::class,
-            ProveedorSeeder::class,
+            /* ProveedorSeeder::class,
             ProductoSeeder::class,
             ClienteSeeder::class,
             CajaSeeder::class,
 
             VentaSeeder::class,
             MovimientoFinancieroSeeder::class,
-            DetalleVentaSeeder::class,
+            DetalleVentaSeeder::class, */
 
         ]);
     }
