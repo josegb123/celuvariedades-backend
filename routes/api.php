@@ -32,7 +32,7 @@ Route::get('/test', function () {
 // Rutas autenticadas para ambos roles (admin y vendedor)
 Route::middleware('auth:sanctum')->group(function () {
     // Solo si el servidor web no redirige /api/storage automáticamente
-    Route::get('/storage/{folder}/{filename}', function ($folder, $filename) {
+    /* Route::get('/storage/{folder}/{filename}', function ($folder, $filename) {
         $path = storage_path("app/public/{$folder}/{$filename}");
 
         if (!File::exists($path)) {
@@ -46,7 +46,7 @@ Route::middleware('auth:sanctum')->group(function () {
         $response->header("Content-Type", $type);
 
         return $response;
-    });
+    }); */
 
 
     Route::post('/register', [AuthController::class, 'register']);

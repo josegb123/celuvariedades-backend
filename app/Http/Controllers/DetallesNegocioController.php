@@ -57,7 +57,7 @@ class DetallesNegocioController extends Controller
         if ($oldLogoUrl) {
             // Extraemos solo la ruta del archivo (ej: details/foto.jpg)
             // Eliminamos el dominio y los prefijos conocidos
-            $search = ['/api/storage/', '/storage/', asset('')];
+            $search = ['/storage/', '/storage/', asset('')];
             $relativePath = str_replace($search, '', $oldLogoUrl);
 
             if (Storage::disk('public')->exists($relativePath)) {
@@ -72,9 +72,9 @@ class DetallesNegocioController extends Controller
         // asset('storage/' . $path) genera: http://tu-dominio.com/storage/details/abc123.png
         $fullUrl = asset('storage/' . $path);
 
-        // Reemplazamos SOLO la primera ocurrencia de /storage por /api/storage
+        // Reemplazamos SOLO la primera ocurrencia de /storage por /storage
         // Usamos un replace más específico para no vaciar la cadena
-        return str_replace('/storage', '/api/storage', $fullUrl);
+        return str_replace('/storage', '/storage', $fullUrl);
     }
 
 }

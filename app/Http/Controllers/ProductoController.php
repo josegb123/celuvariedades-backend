@@ -180,12 +180,12 @@ class ProductoController extends Controller
         // Retorna algo como: "productos/nombre_archivo.jpg"
         $path = $request->file('imagen')->store('productos', 'public');
 
-        // 2. Generar la URL con el prefijo /api/storage
+        // 2. Generar la URL con el prefijo /storage
         // asset('storage/' . $path) genera: http://tu-dominio/storage/productos/abc.jpg
         $fullUrl = asset('storage/' . $path);
 
         // Inyectamos el /api antes de /storage
-        $data['imagen_url'] = str_replace('/storage', '/api/storage', $fullUrl);
+        $data['imagen_url'] = str_replace('/storage', '/storage', $fullUrl);
 
         // 3. Limpiar el objeto del array para evitar errores al guardar en DB
         unset($data['imagen']);
@@ -204,16 +204,16 @@ class ProductoController extends Controller
         }
 
         // El prefijo que estamos inyectando en las URLs
-        $apiStoragePrefix = '/api/storage/';
+        $apiStoragePrefix = '/storage/';
 
-        // 1. Obtener el path de la URL (ej: /api/storage/productos/img.jpg)
+        // 1. Obtener el path de la URL (ej: /storage/productos/img.jpg)
         $urlPath = parse_url($producto->imagen_url, PHP_URL_PATH);
 
         // 2. Verificar si la imagen es gestionada localmente por nuestra API
         if (str_contains($urlPath, $apiStoragePrefix)) {
 
-            // Extraemos lo que hay DESPUÉS de /api/storage/
-            // Si la URL es /api/storage/productos/foto.png -> obtenemos productos/foto.png
+            // Extraemos lo que hay DESPUÉS de /storage/
+            // Si la URL es /storage/productos/foto.png -> obtenemos productos/foto.png
             $relativePath = explode($apiStoragePrefix, $urlPath)[1] ?? null;
 
             // 3. Eliminar del disco 'public' si el path es válido
