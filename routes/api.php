@@ -15,9 +15,8 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\VentaController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\PedidoProveedorController;
-use App\Http\Controllers\DevolucionController; // Import DevolucionController
-use App\Http\Controllers\AvalController; // Import AvalController
-use Illuminate\Http\Request;
+use App\Http\Controllers\DevolucionController;
+use App\Http\Controllers\AvalController;
 use Illuminate\Support\Facades\Route;
 
 // 1. RUTAS PÚBLICAS (No requieren token)
@@ -26,6 +25,10 @@ Route::post('/login', [AuthController::class, 'login']);
 // Ajustes de los detalles del negocio
 Route::get('/settings/business', [DetallesNegocioController::class, 'show']);
 
+// Ruta de prueba
+Route::get('/test', function () {
+    return response()->json('funciona', 200);
+});
 // Rutas autenticadas para ambos roles (admin y vendedor)
 Route::middleware('auth:sanctum')->group(function () {
     // Solo si el servidor web no redirige /api/storage automáticamente
