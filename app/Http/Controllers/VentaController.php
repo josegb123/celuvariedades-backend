@@ -7,6 +7,7 @@ use App\Http\Requests\StoreVentaRequest;
 use App\Http\Requests\UpdateVentaRequest;
 use App\Http\Resources\VentaIndexResource;
 use App\Http\Resources\VentaShowResource;
+use App\Models\DetalleNegocio;
 use App\Models\Venta;
 use App\Services\VentaService;
 use Illuminate\Support\Facades\DB;
@@ -114,10 +115,13 @@ class VentaController extends Controller
             // inventario, y manejo de saldo debe estar centralizada y manejada en una transacción 
             // de base de datos dentro del servicio.
             $venta = $this->ventaService->registrarVenta($validatedData);
+            // Obtenemos los datos del negocio
+            $negocio = DetalleNegocio::first();
 
             return response()->json([
-                'message' => 'Venta registrada con éxito. Inventario actualizado.',
-                'venta' => VentaShowResource::make($venta->load('detalles.producto', )),
+                'message' => 'Venta registrada con éxito.',
+                'venta' => VentaShowResource::make($venta->load('detalles.producto')),
+                'negocio' => $negocio, // <--- Inyectado aquí
             ], 201);
 
         } catch (StockInsuficienteException $e) {
@@ -217,7 +221,7 @@ class VentaController extends Controller
 
         // Aseguramos que los atributos como subtotal, iva_monto, total estén disponibles
         $venta->refresh(); // Ensures the latest state of the model from the database
-
+        $negocio = DetalleNegocio::first(); // Único registro
         // --- CÁLCULO DE ALTURA DINÁMICA (en puntos) ---
 
         // 1. Altura fija (Header, Footer, Detalles, Totales)
@@ -243,7 +247,7 @@ class VentaController extends Controller
         $tamanoPapel = [0, 0, $anchoPosPuntos, $alturaTotalPuntos];
 
         // 2. Generar el PDF
-        $pdf = Pdf::loadView('pdfs.factura_celuvariedades_pos', compact('venta'))
+        $pdf = Pdf::loadView('pdfs.factura_celuvariedades_pos', compact('venta', 'negocio'))
             // Aplicar TAMAÑO DE PAPEL y ORIENTACIÓN
             ->setPaper($tamanoPapel, 'portrait');
 

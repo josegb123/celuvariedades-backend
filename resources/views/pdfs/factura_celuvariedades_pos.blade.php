@@ -3,22 +3,24 @@
 
 <head>
     <meta charset="utf-8">
-    <title>Factura POS Celuvariedades #{{ $venta->numero_factura ?? $venta->id }}</title>
+    <title>Factura POS {{ $negocio->nombre }} #{{ $venta->numero_factura ?? $venta->id }}</title>
     <style>
         /* CSS para simular el recibo de 80mm */
         body {
             font-family: 'Arial', sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #fff width: 80mm;
+            background-color: #fff;
+
             font-size: 8px;
-            /* ⚠️ REDUCIDO A 8PX PARA MÁS ESPACIO */
             color: #000;
         }
 
         .container {
+            width: 100%;
+
+            margin: 0 auto;
             padding: 0px;
-            /* Pequeño padding interno si es necesario */
         }
 
         .header {
@@ -29,10 +31,17 @@
         .header h3 {
             margin: 0;
             font-size: 14px;
+            text-transform: uppercase;
         }
 
         .header p {
             margin: 1px 0;
+        }
+
+        .logo {
+            max-width: 50mm;
+            height: auto;
+            margin-bottom: 5px;
         }
 
         .divider {
@@ -54,16 +63,13 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 8px;
-            /* ⚠️ REDUCIDO A 8PX */
         }
 
         th,
         td {
             padding: 1px 0;
-            /* ⚠️ REDUCIDO EL PADDING */
             text-align: left;
             vertical-align: top;
-            /* Aseguramos que la descripción pueda romper línea */
             word-wrap: break-word;
         }
 
@@ -96,20 +102,17 @@
     <div class="container">
 
         <div class="header">
-            {{-- Datos del negocio traídos directamente del archivo .env --}}
-
-            <h3>{{ env('NEGOCIO_NOMBRE', 'NOMBRE NO DEFINIDO') }}</h3>
-            <p>{{ env('NEGOCIO_PROPIETARIO', 'PROPIETARIO NO DEFINIDO') }}</p>
-            <p>NIT: {{ env('NEGOCIO_NIT', 'N/A') }}</p>
-            <p style="font-style: italic;">{{ env('NEGOCIO_SLOGAN', 'Slogan no definido') }}</p>
-            <p>{{ env('NEGOCIO_DIRECCION', 'Dirección no definida') }}</p>
-            <p>Tel: {{ env('NEGOCIO_TELEFONO', 'Teléfono no definido') }}</p>
+            <br>
+            <h3>{{ $negocio->nombre }}</h3>
+            <p>{{ $negocio->admin }}</p>
+            <p>NIT: {{ $negocio->nit }}</p>
+            <p>{{ $negocio->direccion }}</p>
+            <p>Tel: {{ $negocio->telefono }}</p>
         </div>
 
         <div class="divider"></div>
 
         <div class="details">
-            {{-- Datos del cliente y venta (estos vienen de la base de datos, no del .env) --}}
             <p><strong>FACTURA DE VENTA N°:</strong> {{ $venta->id }}</p>
             <p><strong>FECHA:</strong> {{ $venta->created_at->format('d/m/Y H:i') }}</p>
             <p><strong>SEÑOR(ES):</strong> {{ $venta->cliente->nombre ?? 'N/A' }}</p>
@@ -124,13 +127,12 @@
             <thead>
                 <tr>
                     <th class="center" style="width: 10%;">CANT. </th>
-                    <th style="width: 55%;">DESCRIPCION</th>
+                    <th style="width: 30%;">DESCRIPCION</th>
                     <th class="right" style="width: 15%;">VR. UNIT.</th>
                     <th class="right" style="width: 20%;">VALOR TOTAL</th>
                 </tr>
             </thead>
             <tbody>
-                {{-- Iterar sobre los detalles de la venta --}}
                 @foreach ($venta->detalles as $detalle)
                     <tr>
                         <td class="center">{{ number_format($detalle->cantidad, 0) }}</td>
